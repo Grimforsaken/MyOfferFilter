@@ -11,6 +11,8 @@ public final class OfferEvaluatorTest {
         shouldNotAutoAcceptBelowMinimumRate();
         shouldNotAutoAcceptAboveMaxMiles();
         shouldNotAutoAcceptWithNoAcceptanceRules();
+        shouldRequireShoppingForAutoAccept();
+        shouldRequireNoShippingForAutoAccept();
         shouldPreferEstimatedEarningsOverTip();
         shouldUseLargestMileage();
         shouldWaitWhenMileageMissing();
@@ -89,6 +91,30 @@ public final class OfferEvaluatorTest {
         OfferEvaluator.Result r = eval(text, false, false, 1.25,
                 true, false, 20, false, 1.25, false, 10);
         require(!r.shouldReject && !r.shouldAccept, "no acceptance criteria must mean no auto-accept");
+    }
+
+    private static void shouldRequireShoppingForAutoAccept() {
+        String withoutShopping = "$30.00\n8 miles\nSAPULPA\nAccept\nReject";
+        OfferEvaluator.Result blocked = OfferEvaluator.evaluate(withoutShopping, false, false, 1.25,
+                true, false, 20, false, 1.25, false, 10, true, false);
+        require(!blocked.shouldReject && !blocked.shouldAccept, "Shopping requirement should block auto-accept");
+
+        String withShopping = "$30.00\n8 miles\nSAPULPA\nShopping\nAccept\nReject";
+        OfferEvaluator.Result allowed = OfferEvaluator.evaluate(withShopping, false, false, 1.25,
+                true, false, 20, false, 1.25, false, 10, true, false);
+        require(!allowed.shouldReject && allowed.shouldAccept, "Shopping requirement should allow Shopping offer");
+    }
+
+    private static void shouldRequireNoShippingForAutoAccept() {
+        String withShipping = "$30.00\n8 miles\nSAPULPA\nShipping\nAccept\nReject";
+        OfferEvaluator.Result blocked = OfferEvaluator.evaluate(withShipping, false, false, 1.25,
+                true, false, 20, false, 1.25, false, 10, false, true);
+        require(!blocked.shouldReject && !blocked.shouldAccept, "Shipping presence should block no-Shipping auto-accept rule");
+
+        String withoutShipping = "$30.00\n8 miles\nSAPULPA\nCurbside pickup\nAccept\nReject";
+        OfferEvaluator.Result allowed = OfferEvaluator.evaluate(withoutShipping, false, false, 1.25,
+                true, false, 20, false, 1.25, false, 10, false, true);
+        require(!allowed.shouldReject && allowed.shouldAccept, "no-Shipping rule should allow offer without Shipping");
     }
 
     private static void shouldPreferEstimatedEarningsOverTip() {
