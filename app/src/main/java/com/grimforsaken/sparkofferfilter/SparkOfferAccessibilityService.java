@@ -28,6 +28,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     private static final String SPARK_PACKAGE = "com.walmart.sparkdriver";
     private static final long EVENT_PAYLOAD_MAX_AGE_MS = 2500L;
     private static final long DUPLICATE_ACTION_WINDOW_MS = 15000L;
+    private static final long REJECT_CONFIRMATION_WINDOW_MS = 5000L;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private SharedPreferences prefs;
@@ -36,6 +37,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     private long latestEventTextAt = 0L;
     private String lastActionKey = "";
     private long lastActionAt = 0L;
+    private boolean awaitingRejectConfirmation = false;
+    private long rejectConfirmationDeadline = 0L;
+    private String pendingRejectSummary = "";
 
     private final Runnable retry40 = () -> evaluateCurrentOffer(null, "retry +40ms");
     private final Runnable retry120 = () -> evaluateCurrentOffer(null, "retry +120ms");
@@ -45,6 +49,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     public void onServiceConnected() {
         super.onServiceConnected();
         prefs = getSharedPreferences(Prefs.NAME, MODE_PRIVATE);
+        clearPendingRejectConfirmation();
         try {
             toneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 85);
         } catch (RuntimeException ignored) {
@@ -87,11 +92,13 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     @Override
     public void onInterrupt() {
         handler.removeCallbacksAndMessages(null);
+        clearPendingRejectConfirmation();
     }
 
     @Override
     public void onDestroy() {
         handler.removeCallbacksAndMessages(null);
+        clearPendingRejectConfirmation();
         if (toneGenerator != null) {
             toneGenerator.release();
             toneGenerator = null;
@@ -108,6 +115,42 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     timestamp() + " — Spark event received, but no Spark accessibility tree is attached yet ("
                             + scanSource + ").");
             return;
+        }
+
+        if (awaitingRejectConfirmation) {
+            long now = System.currentTimeMillis();
+            if (now > rejectConfirmationDeadline) {
+                clearPendingRejectConfirmation();
+                writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                        timestamp() + " — Spark reject confirmation was not found within 5 seconds.");
+            } else {
+                for (AccessibilityNodeInfo root : candidates) {
+                    String confirmationText = collectAllText(root);
+                    if (!isRejectConfirmationScreen(confirmationText)) continue;
+
+                    AccessibilityNodeInfo confirmRejectNode = findDecisionControl(root, false);
+                    if (confirmRejectNode == null) {
+                        writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                                timestamp() + " — Reject confirmation dialog found; waiting for the REJECT OFFER button.");
+                        return;
+                    }
+
+                    if (clickControl(confirmRejectNode)) {
+                        String summary = pendingRejectSummary;
+                        clearPendingRejectConfirmation();
+                        clearFreshEventPayload();
+                        playDecisionChime(false);
+                        writeDecision("REJECTED and confirmed immediately. " + summary);
+                        writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                                timestamp() + " — Spark confirmation dialog: REJECT OFFER pressed automatically.");
+                        writeDiagnostic(Prefs.LAST_CAPTURE, truncate(confirmationText, 3500));
+                    } else {
+                        writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                                timestamp() + " — Reject confirmation dialog found, but REJECT OFFER could not yet be activated.");
+                    }
+                    return;
+                }
+            }
         }
 
         boolean sawReadableText = false;
@@ -162,16 +205,18 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
 
                 if (clickControl(rejectNode)) {
                     recordAction(offerKey, now);
-                    clearFreshEventPayload();
-                    playDecisionChime(false);
-                    writeDecision("REJECTED immediately. " + details + " Reason: " + result.reason);
+                    awaitingRejectConfirmation = true;
+                    rejectConfirmationDeadline = now + REJECT_CONFIRMATION_WINDOW_MS;
+                    pendingRejectSummary = details + " Reason: " + result.reason;
+                    writeDecision("REJECT selected immediately; waiting for Spark confirmation and will press REJECT OFFER automatically. "
+                            + pendingRejectSummary);
                 } else {
                     bestStatus = timestamp() + " — REJECT decision known; detected control could not yet be activated. "
                             + controlStatus;
                     continue;
                 }
                 writeDiagnostic(Prefs.LAST_SCAN_STATUS,
-                        timestamp() + " — " + scanSource + ". " + controlStatus);
+                        timestamp() + " — " + scanSource + ". First Reject pressed; confirmation is armed. " + controlStatus);
                 writeDiagnostic(Prefs.LAST_CAPTURE, truncate(currentText, 3500));
                 return;
             }
@@ -300,6 +345,18 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     private void clearFreshEventPayload() {
         latestEventText = "";
         latestEventTextAt = 0L;
+    }
+
+    private void clearPendingRejectConfirmation() {
+        awaitingRejectConfirmation = false;
+        rejectConfirmationDeadline = 0L;
+        pendingRejectSummary = "";
+    }
+
+    private boolean isRejectConfirmationScreen(String text) {
+        String normalized = OfferEvaluator.normalize(text == null ? "" : text);
+        return normalized.contains("ARE YOU SURE YOU WANT TO REJECT THIS OFFER")
+                || (normalized.contains("KEEP OFFER") && normalized.contains("REJECT OFFER"));
     }
 
     private String collectEventPayload(AccessibilityEvent event) {
