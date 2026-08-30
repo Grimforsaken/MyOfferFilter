@@ -96,6 +96,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         double acceptMinRate = prefs.getFloat(Prefs.ACCEPT_MIN_RATE, 1.25f);
         boolean acceptMaxMilesEnabled = prefs.getBoolean(Prefs.ACCEPT_MAX_MILES_ENABLED, false);
         double acceptMaxMiles = prefs.getFloat(Prefs.ACCEPT_MAX_MILES, 10.0f);
+        boolean acceptShoppingEnabled = prefs.getBoolean(Prefs.ACCEPT_SHOPPING_ENABLED, false);
+        boolean acceptNoShippingEnabled = prefs.getBoolean(Prefs.ACCEPT_NO_SHIPPING_ENABLED, false);
         boolean dryRun = prefs.getBoolean(Prefs.DRY_RUN, true);
 
         OfferEvaluator.Result result = OfferEvaluator.evaluate(
@@ -109,7 +111,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 acceptMinRateEnabled,
                 acceptMinRate,
                 acceptMaxMilesEnabled,
-                acceptMaxMiles);
+                acceptMaxMiles,
+                acceptShoppingEnabled,
+                acceptNoShippingEnabled);
 
         if (!result.ready) return;
 
@@ -184,12 +188,13 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     }
 
     private String formatOffer(OfferEvaluator.Result result) {
-        return String.format(Locale.US, "$%.2f, %.1f mi, $%.2f/mi.%s%s",
+        return String.format(Locale.US, "$%.2f, %.1f mi, $%.2f/mi.%s%s%s",
                 result.pay,
                 result.miles,
                 result.dollarsPerMile,
                 result.hasAllowedCity ? " Allowed city found." : "",
-                result.hasShopping ? " Shopping shown." : "");
+                result.hasShopping ? " Shopping shown." : "",
+                result.hasShipping ? " Shipping shown." : "");
     }
 
     private AccessibilityNodeInfo findDecisionControl(AccessibilityNodeInfo root, boolean accept) {
