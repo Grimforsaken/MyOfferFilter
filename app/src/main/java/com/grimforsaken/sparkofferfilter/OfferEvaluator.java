@@ -11,6 +11,7 @@ public final class OfferEvaluator {
     private static final Pattern MILES_PATTERN = Pattern.compile("(?i)([0-9]+(?:\\.[0-9]+)?)\\s*(?:mi(?:le)?s?\\.?)\\b");
     private static final Pattern SHOP_DELIVER_PATTERN = Pattern.compile("(?i)\\bshop\\s*(?:&|and)\\s*deliver(?:y)?\\b");
     private static final Pattern SHIPPING_PATTERN = Pattern.compile("(?i)\\bshipping\\b");
+    private static final Pattern HARD_REJECT_CITY_PATTERN = Pattern.compile("(?i)\\b(TULSA|GLENPOOL|JENKS)\\b");
 
     private OfferEvaluator() {}
 
@@ -53,6 +54,10 @@ public final class OfferEvaluator {
         boolean hasAllowedCity = normalized.contains("SAND SPRINGS") || normalized.contains("SAPULPA");
         boolean hasShopping = normalized.contains("SHOPPING") || SHOP_DELIVER_PATTERN.matcher(text).find();
         boolean hasShipping = SHIPPING_PATTERN.matcher(text).find();
+        Matcher hardRejectCityMatcher = HARD_REJECT_CITY_PATTERN.matcher(text);
+        String hardRejectCity = hardRejectCityMatcher.find()
+                ? hardRejectCityMatcher.group(1).toUpperCase(Locale.US)
+                : null;
 
         if (pay == null || miles == null || miles <= 0.0) {
             return Result.notReady(hasAllowedCity, hasShopping, hasShipping, pay, miles,
@@ -62,6 +67,9 @@ public final class OfferEvaluator {
         double rate = pay / miles;
         List<String> rejectionReasons = new ArrayList<>();
 
+        if (hardRejectCity != null) {
+            rejectionReasons.add(hardRejectCity + " is a hard-reject city");
+        }
         if (!hasAllowedCity) {
             rejectionReasons.add("neither SAND SPRINGS nor SAPULPA is shown");
         }
