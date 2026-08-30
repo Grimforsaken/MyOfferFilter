@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/surface">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="My Offer Filter"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Unofficial personal Spark Driver companion. It evaluates visible offer information and can press Accept or Reject only when the enabled rules say to do so."
+            android:textSize="14sp"
+            android:textColor="@color/text_primary" />
+
+        <CheckBox
+            android:id="@+id/masterEnabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Enable automatic offer filtering"
+            android:textStyle="bold" />
+
+        <CheckBox
+            android:id="@+id/dryRun"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Test mode — log decisions but do not click Accept or Reject"
+            android:checked="true" />
+
+        <CheckBox
+            android:id="@+id/decisionChimes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Play separate Accept / Reject chimes"
+            android:checked="true" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="AUTO-REJECT RULES"
+            android:textStyle="bold"
+            android:textColor="@color/brand_blue_dark" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Always reject unless the visible order contains SAND SPRINGS or SAPULPA. Reject rules always take priority over Auto-Accept."
+            android:textSize="16sp" />
+
+        <CheckBox
+            android:id="@+id/rejectNoShopping"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Reject orders that do not show Shopping" />
+
+        <CheckBox
+            android:id="@+id/rejectLowRate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Reject orders below this dollars-per-mile amount"
+            android:checked="true" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Reject below $ / mile:  " android:textSize="16sp" />
+            <EditText android:id="@+id/rejectThreshold" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="1.25" android:selectAllOnFocus="true" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="AUTO-ACCEPT RULES"
+            android:textStyle="bold"
+            android:textColor="@color/brand_blue_dark" />
+
+        <CheckBox
+            android:id="@+id/autoAcceptEnabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Enable Auto-Accept"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Auto-Accept is OFF by default. Every checked criterion below must pass. If none are checked, no order will be auto-accepted."
+            android:textSize="14sp"
+            android:textColor="@color/warning" />
+
+        <CheckBox
+            android:id="@+id/acceptMinPayEnabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Require a minimum order dollar amount" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Minimum order $:  " android:textSize="16sp" />
+            <EditText android:id="@+id/acceptMinPay" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="20.00" android:selectAllOnFocus="true" />
+        </LinearLayout>
+
+        <CheckBox
+            android:id="@+id/acceptMinRateEnabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Require a minimum dollars-per-mile amount" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Minimum $ / mile:  " android:textSize="16sp" />
+            <EditText android:id="@+id/acceptMinRate" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="1.25" android:selectAllOnFocus="true" />
+        </LinearLayout>
+
+        <CheckBox
+            android:id="@+id/acceptMaxMilesEnabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Require a maximum number of miles" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Maximum miles:  " android:textSize="16sp" />
+            <EditText android:id="@+id/acceptMaxMiles" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="10.0" android:selectAllOnFocus="true" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/openAccessibility"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:text="Open Accessibility Settings" />
+
+        <TextView
+            android:id="@+id/serviceStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Accessibility service status: checking…"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="LATEST DECISION"
+            android:textStyle="bold"
+            android:textColor="@color/brand_blue_dark" />
+
+        <TextView
+            android:id="@+id/latestDecision"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:padding="12dp"
+            android:background="#EEEEEE"
+            android:text="No offer evaluated yet."
+            android:textIsSelectable="true" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Safety guard: the service waits for a stable Spark offer screen with readable pay, mileage, and a Reject/Decline control before acting. Start in Test mode and verify several offers while parked before allowing automatic clicks."
+            android:textSize="14sp"
+            android:textColor="@color/warning" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="24dp"
+            android:text="Decision chimes play only after a successful automatic click, not in Test mode. This app does not use the Internet and does not modify the Spark Driver APK."
+            android:textSize="13sp" />
+    </LinearLayout>
+</ScrollView>
