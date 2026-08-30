@@ -2,6 +2,7 @@ package com.grimforsaken.sparkofferfilter;
 
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -10,6 +11,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
@@ -138,9 +140,14 @@ public class MainActivity extends Activity {
 
     private void refreshStatus() {
         boolean enabled = isAccessibilityServiceEnabled();
-        serviceStatus.setText(enabled
+        boolean testMode = prefs.getBoolean(Prefs.DRY_RUN, true);
+        String modeText = testMode
+                ? "\nTEST MODE is ON — decisions are evaluated, but Accept/Reject is NOT pressed."
+                : "\nLIVE MODE is ON — matching offers may be accepted/rejected automatically.";
+        serviceStatus.setText((enabled
                 ? "Accessibility service status: ON"
-                : "Accessibility service status: OFF — open settings and enable My Offer Filter service");
+                : "Accessibility service status: OFF — open settings and enable My Offer Filter service")
+                + modeText);
 
         latestDecision.setText(prefs.getString(Prefs.LAST_DECISION, "No offer evaluated yet."));
         String event = prefs.getString(Prefs.LAST_SPARK_EVENT, "No Spark Accessibility event received yet.");
@@ -150,14 +157,41 @@ public class MainActivity extends Activity {
     }
 
     private boolean isAccessibilityServiceEnabled() {
+        ComponentName expected = new ComponentName(this, SparkOfferAccessibilityService.class);
+
         AccessibilityManager manager = (AccessibilityManager) getSystemService(Context.ACCESSIBILITY_SERVICE);
-        if (manager == null) return false;
-        List<AccessibilityServiceInfo> enabled = manager.getEnabledAccessibilityServiceList(
-                AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
-        String expected = getPackageName() + "/" + SparkOfferAccessibilityService.class.getName();
-        for (AccessibilityServiceInfo info : enabled) {
-            if (info.getId() != null && info.getId().equalsIgnoreCase(expected)) return true;
+        if (manager != null) {
+            List<AccessibilityServiceInfo> enabled = manager.getEnabledAccessibilityServiceList(
+                    AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
+            for (AccessibilityServiceInfo info : enabled) {
+                if (info == null) continue;
+
+                if (info.getResolveInfo() != null && info.getResolveInfo().serviceInfo != null) {
+                    ComponentName actual = new ComponentName(
+                            info.getResolveInfo().serviceInfo.packageName,
+                            info.getResolveInfo().serviceInfo.name);
+                    if (expected.equals(actual)) return true;
+                }
+
+                String id = info.getId();
+                if (id != null) {
+                    ComponentName actual = ComponentName.unflattenFromString(id);
+                    if (expected.equals(actual)) return true;
+                }
+            }
         }
+
+        String rawEnabled = Settings.Secure.getString(
+                getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        if (!TextUtils.isEmpty(rawEnabled)) {
+            TextUtils.SimpleStringSplitter splitter = new TextUtils.SimpleStringSplitter(':');
+            splitter.setString(rawEnabled);
+            while (splitter.hasNext()) {
+                ComponentName actual = ComponentName.unflattenFromString(splitter.next());
+                if (expected.equals(actual)) return true;
+            }
+        }
+
         return false;
     }
 }
