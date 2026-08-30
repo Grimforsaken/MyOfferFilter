@@ -8,6 +8,7 @@ public final class OfferEvaluatorTest {
         shouldHardRejectGlenpool();
         shouldHardRejectJenks();
         shouldHardRejectBannedCityEvenWhenAllowedCityAppears();
+        shouldHardRejectBeforePayAndMilesLoad();
         shouldRejectMissingShoppingWhenEnabled();
         shouldRejectLowRate();
         shouldAutoAcceptWhenAllEnabledRulesPass();
@@ -76,6 +77,16 @@ public final class OfferEvaluatorTest {
                 "hard-reject city must override an allowed city");
         require(r.reason.contains("JENKS is a hard-reject city"),
                 "hard-reject precedence reason missing");
+    }
+
+    private static void shouldHardRejectBeforePayAndMilesLoad() {
+        String text = "JENKS\nShopping\nReject";
+        OfferEvaluator.Result r = eval(text, false, true, 1.25,
+                true, true, 20, true, 1.25, true, 10);
+        require(r.ready && r.shouldReject && !r.shouldAccept,
+                "hard-reject city should not wait for pay or mileage");
+        require(r.pay != null && r.miles != null,
+                "hard reject should produce a safe immediate action result");
     }
 
     private static void shouldRejectMissingShoppingWhenEnabled() {
