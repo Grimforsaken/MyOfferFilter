@@ -21,6 +21,9 @@ final class Prefs {
 
     static final String DECISION_CHIMES = "decision_chimes";
     static final String LAST_DECISION = "last_decision";
+    static final String LAST_SPARK_EVENT = "last_spark_event";
+    static final String LAST_SCAN_STATUS = "last_scan_status";
+    static final String LAST_CAPTURE = "last_capture";
 
     private Prefs() {}
 }
