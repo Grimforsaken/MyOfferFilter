@@ -106,9 +106,23 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Auto-Accept is OFF by default. Every checked criterion below must pass. If none are checked, no order will be auto-accepted."
+            android:text="Auto-Accept is OFF by default. Every checked criterion below must pass. This includes order-type filters such as Shopping and no Shipping. If none are checked, no order will be auto-accepted."
             android:textSize="14sp"
             android:textColor="@color/warning" />
+
+        <CheckBox
+            android:id="@+id/acceptShoppingEnabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Require Shopping to be shown" />
+
+        <CheckBox
+            android:id="@+id/acceptNoShippingEnabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Require Shipping NOT to be shown" />
 
         <CheckBox
             android:id="@+id/acceptMinPayEnabled"
