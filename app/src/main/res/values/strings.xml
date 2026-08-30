@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">My Offer Filter</string>
+    <string name="accessibility_service_name">My Offer Filter service</string>
+    <string name="accessibility_description">Reads visible Spark Driver offer content, calculates dollars per mile, and can press visible Accept or Reject controls when the user-enabled rules require it. No network permission is requested.</string>
+</resources>
