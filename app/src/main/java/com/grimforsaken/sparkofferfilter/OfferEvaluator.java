@@ -59,6 +59,15 @@ public final class OfferEvaluator {
                 ? hardRejectCityMatcher.group(1).toUpperCase(Locale.US)
                 : null;
 
+        if (hardRejectCity != null) {
+            double hardRejectPay = pay == null ? 0.0 : pay;
+            double hardRejectMiles = miles == null ? 0.0 : miles;
+            double hardRejectRate = pay != null && miles != null && miles > 0.0 ? pay / miles : 0.0;
+            return Result.ready(true, false, hasAllowedCity, hasShopping, hasShipping,
+                    hardRejectPay, hardRejectMiles, hardRejectRate,
+                    hardRejectCity + " is a hard-reject city; pay and mileage are not required");
+        }
+
         if (pay == null || miles == null || miles <= 0.0) {
             return Result.notReady(hasAllowedCity, hasShopping, hasShipping, pay, miles,
                     "Waiting for readable pay and mileage.");
@@ -67,9 +76,6 @@ public final class OfferEvaluator {
         double rate = pay / miles;
         List<String> rejectionReasons = new ArrayList<>();
 
-        if (hardRejectCity != null) {
-            rejectionReasons.add(hardRejectCity + " is a hard-reject city");
-        }
         if (!hasAllowedCity) {
             rejectionReasons.add("neither SAND SPRINGS nor SAPULPA is shown");
         }
