@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -22,6 +24,14 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private TextView serviceStatus;
     private TextView latestDecision;
+    private TextView diagnostics;
+    private final Handler uiHandler = new Handler(Looper.getMainLooper());
+    private final Runnable refreshRunnable = new Runnable() {
+        @Override public void run() {
+            refreshStatus();
+            uiHandler.postDelayed(this, 750L);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +58,7 @@ public class MainActivity extends Activity {
 
         serviceStatus = findViewById(R.id.serviceStatus);
         latestDecision = findViewById(R.id.latestDecision);
+        diagnostics = findViewById(R.id.diagnostics);
         Button openAccessibility = findViewById(R.id.openAccessibility);
 
         masterEnabled.setChecked(prefs.getBoolean(Prefs.MASTER_ENABLED, false));
@@ -115,7 +126,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        refreshStatus();
+        uiHandler.removeCallbacks(refreshRunnable);
+        refreshRunnable.run();
+    }
+
+    @Override
+    protected void onPause() {
+        uiHandler.removeCallbacks(refreshRunnable);
+        super.onPause();
     }
 
     private void refreshStatus() {
@@ -125,6 +143,10 @@ public class MainActivity extends Activity {
                 : "Accessibility service status: OFF — open settings and enable My Offer Filter service");
 
         latestDecision.setText(prefs.getString(Prefs.LAST_DECISION, "No offer evaluated yet."));
+        String event = prefs.getString(Prefs.LAST_SPARK_EVENT, "No Spark Accessibility event received yet.");
+        String scan = prefs.getString(Prefs.LAST_SCAN_STATUS, "No Spark screen scan yet.");
+        String capture = prefs.getString(Prefs.LAST_CAPTURE, "No readable Spark text captured yet.");
+        diagnostics.setText(event + "\n\n" + scan + "\n\nVISIBLE SPARK TEXT:\n" + capture);
     }
 
     private boolean isAccessibilityServiceEnabled() {
