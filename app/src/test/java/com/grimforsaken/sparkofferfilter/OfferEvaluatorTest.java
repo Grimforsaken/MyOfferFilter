@@ -4,6 +4,10 @@ public final class OfferEvaluatorTest {
     public static void main(String[] args) {
         shouldKeepAllowedCityAtRejectThreshold();
         shouldRejectWrongCityBeforeAccept();
+        shouldHardRejectTulsa();
+        shouldHardRejectGlenpool();
+        shouldHardRejectJenks();
+        shouldHardRejectBannedCityEvenWhenAllowedCityAppears();
         shouldRejectMissingShoppingWhenEnabled();
         shouldRejectLowRate();
         shouldAutoAcceptWhenAllEnabledRulesPass();
@@ -41,6 +45,37 @@ public final class OfferEvaluatorTest {
         OfferEvaluator.Result r = eval(text, false, false, 1.25,
                 true, true, 20, true, 1.25, true, 10);
         require(r.ready && r.shouldReject && !r.shouldAccept, "wrong city must reject before accept");
+    }
+
+    private static void shouldHardRejectTulsa() {
+        assertHardRejectCity("TULSA");
+    }
+
+    private static void shouldHardRejectGlenpool() {
+        assertHardRejectCity("GLENPOOL");
+    }
+
+    private static void shouldHardRejectJenks() {
+        assertHardRejectCity("JENKS");
+    }
+
+    private static void assertHardRejectCity(String city) {
+        String text = "$50.00\n5 miles\n" + city + "\nShopping\nAccept\nReject";
+        OfferEvaluator.Result r = eval(text, false, false, 1.25,
+                true, true, 20, true, 1.25, true, 10);
+        require(r.ready && r.shouldReject && !r.shouldAccept, city + " must hard-reject");
+        require(r.reason.contains(city + " is a hard-reject city"),
+                city + " hard-reject reason missing");
+    }
+
+    private static void shouldHardRejectBannedCityEvenWhenAllowedCityAppears() {
+        String text = "$60.00\n5 miles\nSAND SPRINGS\nJENKS\nShopping\nAccept\nReject";
+        OfferEvaluator.Result r = eval(text, false, false, 1.25,
+                true, true, 20, true, 1.25, true, 10);
+        require(r.ready && r.shouldReject && !r.shouldAccept,
+                "hard-reject city must override an allowed city");
+        require(r.reason.contains("JENKS is a hard-reject city"),
+                "hard-reject precedence reason missing");
     }
 
     private static void shouldRejectMissingShoppingWhenEnabled() {
