@@ -6,6 +6,10 @@ public final class OfferEvaluatorTest {
         shouldHardRejectTulsa();
         shouldHardRejectGlenpool();
         shouldHardRejectJenks();
+        shouldAllowTulsaWhenChecked();
+        shouldAllowGlenpoolWhenChecked();
+        shouldAllowJenksWhenChecked();
+        shouldStillApplyOtherRejectRulesToAllowedCity();
         shouldHardRejectBeforePayAndMilesLoad();
         shouldRejectBelowMinimumOrderAmount();
         shouldKeepAtMinimumOrderAmount();
@@ -38,6 +42,7 @@ public final class OfferEvaluatorTest {
                                                double minRate,
                                                boolean maxMilesOn,
                                                double maxMiles) {
+        CityPolicy.configure(false, false, false);
         return OfferEvaluator.evaluate(text,
                 rejectShopping,
                 rejectRate,
@@ -55,13 +60,30 @@ public final class OfferEvaluatorTest {
                 false);
     }
 
+    private static OfferEvaluator.Result evalAllowedCity(String city,
+                                                         boolean allowTulsa,
+                                                         boolean allowGlenpool,
+                                                         boolean allowJenks,
+                                                         boolean rejectMinPayOn,
+                                                         double rejectMinPay) {
+        CityPolicy.configure(allowTulsa, allowGlenpool, allowJenks);
+        OfferEvaluator.Result result = OfferEvaluator.evaluate(
+                "$30.00\n8 miles\n" + city + "\nShopping\nAccept\nReject",
+                false, false, 1.25,
+                rejectMinPayOn, rejectMinPay,
+                false, false, 20, false, 1.25, false, 10,
+                false, false);
+        CityPolicy.configure(false, false, false);
+        return result;
+    }
+
     private static void shouldAllowOtherCities() {
-        String text = "$20.00\n8 miles\nBIXBY\nShopping\nAccept\nReject";
-        OfferEvaluator.Result r = eval(text, false, false, 1.25,
+        OfferEvaluator.Result r = eval("$20.00\n8 miles\nBIXBY\nShopping\nAccept\nReject",
+                false, false, 1.25,
                 false, 15.00,
                 false, false, 20, false, 1.25, false, 10);
         require(r.ready && !r.shouldReject && !r.shouldAccept,
-                "non-hard-reject cities should no longer be rejected");
+                "non-city-filter cities should not be rejected by city");
         require(!r.reason.contains("SAND SPRINGS") && !r.reason.contains("SAPULPA"),
                 "old allowed-city rule should be gone");
     }
@@ -71,13 +93,42 @@ public final class OfferEvaluatorTest {
     private static void shouldHardRejectJenks() { assertHardRejectCity("JENKS"); }
 
     private static void assertHardRejectCity(String city) {
-        String text = "$50.00\n5 miles\n" + city + "\nShopping\nAccept\nReject";
-        OfferEvaluator.Result r = eval(text, false, false, 1.25,
+        OfferEvaluator.Result r = eval("$50.00\n5 miles\n" + city + "\nShopping\nAccept\nReject",
+                false, false, 1.25,
                 true, 15.00,
                 true, true, 20, true, 1.25, true, 10);
-        require(r.ready && r.shouldReject && !r.shouldAccept, city + " must hard-reject");
-        require(r.reason.contains(city + " is a hard-reject city"),
-                city + " hard-reject reason missing");
+        require(r.ready && r.shouldReject && !r.shouldAccept, city + " must reject by default");
+        require(r.reason.contains(city), city + " rejection reason missing");
+    }
+
+    private static void shouldAllowTulsaWhenChecked() {
+        OfferEvaluator.Result r = evalAllowedCity("TULSA", true, false, false, false, 15.00);
+        require(r.ready && !r.shouldReject, "TULSA should be allowed when its checkbox is checked");
+    }
+
+    private static void shouldAllowGlenpoolWhenChecked() {
+        OfferEvaluator.Result r = evalAllowedCity("GLENPOOL", false, true, false, false, 15.00);
+        require(r.ready && !r.shouldReject, "GLENPOOL should be allowed when its checkbox is checked");
+    }
+
+    private static void shouldAllowJenksWhenChecked() {
+        OfferEvaluator.Result r = evalAllowedCity("JENKS", false, false, true, false, 15.00);
+        require(r.ready && !r.shouldReject, "JENKS should be allowed when its checkbox is checked");
+    }
+
+    private static void shouldStillApplyOtherRejectRulesToAllowedCity() {
+        CityPolicy.configure(true, false, false);
+        OfferEvaluator.Result r = OfferEvaluator.evaluate(
+                "$10.00\n8 miles\nTULSA\nShopping\nAccept\nReject",
+                false, false, 1.25,
+                true, 15.00,
+                false, false, 20, false, 1.25, false, 10,
+                false, false);
+        CityPolicy.configure(false, false, false);
+        require(r.ready && r.shouldReject,
+                "allowing a city must not bypass the minimum-order reject rule");
+        require(r.reason.contains("below reject minimum"),
+                "other reject rule should explain an allowed-city rejection");
     }
 
     private static void shouldHardRejectBeforePayAndMilesLoad() {
@@ -85,7 +136,7 @@ public final class OfferEvaluatorTest {
                 true, 15.00,
                 true, true, 20, true, 1.25, true, 10);
         require(r.ready && r.shouldReject && !r.shouldAccept,
-                "hard-reject city should not wait for pay or mileage");
+                "blocked city should not wait for pay or mileage");
     }
 
     private static void shouldRejectBelowMinimumOrderAmount() {
@@ -173,6 +224,7 @@ public final class OfferEvaluatorTest {
     }
 
     private static void shouldRequireShoppingForAutoAccept() {
+        CityPolicy.configure(false, false, false);
         String withoutShopping = "$30.00\n8 miles\nBIXBY\nAccept\nReject";
         OfferEvaluator.Result blocked = OfferEvaluator.evaluate(withoutShopping,
                 false, false, 1.25, false, 15.00,
@@ -189,6 +241,7 @@ public final class OfferEvaluatorTest {
     }
 
     private static void shouldRequireNoShippingForAutoAccept() {
+        CityPolicy.configure(false, false, false);
         String withShipping = "$30.00\n8 miles\nBIXBY\nShipping\nAccept\nReject";
         OfferEvaluator.Result blocked = OfferEvaluator.evaluate(withShipping,
                 false, false, 1.25, false, 15.00,

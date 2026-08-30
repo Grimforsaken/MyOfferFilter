@@ -22,6 +22,7 @@ jobs:
         run: |
           mkdir -p /tmp/myofferfilter-tests
           javac -d /tmp/myofferfilter-tests \
+            app/src/main/java/com/grimforsaken/sparkofferfilter/CityPolicy.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferEvaluator.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/OfferEvaluatorTest.java
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.OfferEvaluatorTest

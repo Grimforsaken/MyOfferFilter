@@ -77,16 +77,22 @@ public final class OfferEvaluator {
         boolean hasAllowedCity = normalized.contains("SAND SPRINGS") || normalized.contains("SAPULPA");
         boolean hasShopping = normalized.contains("SHOPPING") || SHOP_DELIVER_PATTERN.matcher(text).find();
         boolean hasShipping = SHIPPING_PATTERN.matcher(text).find();
+
         Matcher hardRejectCityMatcher = HARD_REJECT_CITY_PATTERN.matcher(text);
-        String hardRejectCity = hardRejectCityMatcher.find()
-                ? hardRejectCityMatcher.group(1).toUpperCase(Locale.US)
-                : null;
+        String hardRejectCity = null;
+        while (hardRejectCityMatcher.find()) {
+            String city = hardRejectCityMatcher.group(1).toUpperCase(Locale.US);
+            if (!CityPolicy.isAllowed(city)) {
+                hardRejectCity = city;
+                break;
+            }
+        }
 
         if (hardRejectCity != null) {
             Double rate = pay != null && miles != null && miles > 0.0 ? pay / miles : null;
             return Result.ready(true, false, hasAllowedCity, hasShopping, hasShipping,
                     pay, miles, rate,
-                    hardRejectCity + " is a hard-reject city; pay and mileage are not required");
+                    hardRejectCity + " is currently set to REJECT in City Rejection Exceptions");
         }
 
         if (rejectMinPayEnabled && pay != null && pay + 1e-9 < rejectMinPay) {

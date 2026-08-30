@@ -19,7 +19,14 @@
         <CheckBox android:id="@+id/decisionChimes" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Play separate Accept / Reject chimes" android:checked="true" />
 
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="AUTO-REJECT RULES" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="TULSA, GLENPOOL, and JENKS are always rejected. Other cities are allowed unless another enabled reject rule fails. Reject rules take priority over Auto-Accept." android:textSize="16sp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Reject rules take priority over Auto-Accept." android:textSize="16sp" />
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="CITY REJECTION EXCEPTIONS" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="TULSA, GLENPOOL, and JENKS are rejected by default. Check a city below to allow it through the city filter. Other enabled reject rules still apply." android:textSize="14sp" android:textColor="@color/warning" />
+        <CheckBox android:id="@+id/allowTulsa" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Allow TULSA offers" />
+        <CheckBox android:id="@+id/allowGlenpool" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Allow GLENPOOL offers" />
+        <CheckBox android:id="@+id/allowJenks" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Allow JENKS offers" />
+
         <CheckBox android:id="@+id/rejectNoShopping" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Reject orders that do not show Shopping" />
         <CheckBox android:id="@+id/rejectMinPayEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders below this minimum order dollar amount" android:checked="true" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
@@ -63,7 +70,7 @@
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="LIVE DIAGNOSTICS" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
         <TextView android:id="@+id/diagnostics" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:padding="12dp" android:background="#EEEEEE" android:text="No Spark Accessibility event received yet." android:textIsSelectable="true" android:textSize="12sp" />
 
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="The service scans shortly after Spark Accessibility events and can reject TULSA, GLENPOOL, or JENKS as soon as the city is exposed. A low-dollar rejection can also fire as soon as pay is readable. Other rules wait for the information they need." android:textSize="14sp" android:textColor="@color/warning" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="The service scans shortly after Spark Accessibility events. A city that is not allowed can be rejected as soon as its name is exposed. A low-dollar rejection can also fire as soon as pay is readable. Other rules wait for the information they need." android:textSize="14sp" android:textColor="@color/warning" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:layout_marginBottom="24dp" android:text="If an offer is visible but no decision occurs, return here and read Live Diagnostics. It will show whether Spark events, visible text, and Accept/Reject controls were detected." android:textSize="13sp" />
     </LinearLayout>
 </ScrollView>

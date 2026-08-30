@@ -49,6 +49,9 @@ public class MainActivity extends Activity {
         EditText rejectMinPay = findViewById(R.id.rejectMinPay);
         CheckBox rejectLowRate = findViewById(R.id.rejectLowRate);
         EditText rejectThreshold = findViewById(R.id.rejectThreshold);
+        CheckBox allowTulsa = findViewById(R.id.allowTulsa);
+        CheckBox allowGlenpool = findViewById(R.id.allowGlenpool);
+        CheckBox allowJenks = findViewById(R.id.allowJenks);
 
         CheckBox autoAcceptEnabled = findViewById(R.id.autoAcceptEnabled);
         CheckBox acceptMinPayEnabled = findViewById(R.id.acceptMinPayEnabled);
@@ -74,6 +77,9 @@ public class MainActivity extends Activity {
         rejectMinPay.setText(format(prefs.getFloat(Prefs.REJECT_MIN_PAY, 15.00f), 2));
         rejectLowRate.setChecked(prefs.getBoolean(Prefs.REJECT_LOW_RATE, true));
         rejectThreshold.setText(format(prefs.getFloat(Prefs.THRESHOLD, 1.25f), 2));
+        allowTulsa.setChecked(prefs.getBoolean(Prefs.ALLOW_TULSA, false));
+        allowGlenpool.setChecked(prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false));
+        allowJenks.setChecked(prefs.getBoolean(Prefs.ALLOW_JENKS, false));
 
         autoAcceptEnabled.setChecked(prefs.getBoolean(Prefs.AUTO_ACCEPT_ENABLED, false));
         acceptMinPayEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_MIN_PAY_ENABLED, false));
@@ -85,6 +91,8 @@ public class MainActivity extends Activity {
         acceptShoppingEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_SHOPPING_ENABLED, false));
         acceptNoShippingEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_NO_SHIPPING_ENABLED, false));
 
+        refreshCityPolicy();
+
         bindCheck(masterEnabled, Prefs.MASTER_ENABLED);
         bindCheck(dryRun, Prefs.DRY_RUN);
         bindCheck(decisionChimes, Prefs.DECISION_CHIMES);
@@ -93,6 +101,9 @@ public class MainActivity extends Activity {
         bindNumber(rejectMinPay, Prefs.REJECT_MIN_PAY, 0.01f, 10000.0f);
         bindCheck(rejectLowRate, Prefs.REJECT_LOW_RATE);
         bindNumber(rejectThreshold, Prefs.THRESHOLD, 0.10f, 20.0f);
+        bindCheck(allowTulsa, Prefs.ALLOW_TULSA);
+        bindCheck(allowGlenpool, Prefs.ALLOW_GLENPOOL);
+        bindCheck(allowJenks, Prefs.ALLOW_JENKS);
 
         bindCheck(autoAcceptEnabled, Prefs.AUTO_ACCEPT_ENABLED);
         bindCheck(acceptMinPayEnabled, Prefs.ACCEPT_MIN_PAY_ENABLED);
@@ -111,8 +122,17 @@ public class MainActivity extends Activity {
     }
 
     private void bindCheck(CheckBox checkBox, String key) {
-        checkBox.setOnCheckedChangeListener((button, checked) ->
-                prefs.edit().putBoolean(key, checked).apply());
+        checkBox.setOnCheckedChangeListener((button, checked) -> {
+            prefs.edit().putBoolean(key, checked).apply();
+            refreshCityPolicy();
+        });
+    }
+
+    private void refreshCityPolicy() {
+        CityPolicy.configure(
+                prefs.getBoolean(Prefs.ALLOW_TULSA, false),
+                prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false),
+                prefs.getBoolean(Prefs.ALLOW_JENKS, false));
     }
 
     private void bindNumber(EditText editText, String key, float min, float max) {
@@ -137,6 +157,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        refreshCityPolicy();
         uiHandler.removeCallbacks(refreshRunnable);
         refreshRunnable.run();
     }
