@@ -1,0 +1,14 @@
+MyOfferFilter v1.1.0
+
+Main additions:
+- Optional Auto-Accept master switch (OFF by default).
+- Optional minimum total dollars acceptance rule.
+- Optional minimum dollars-per-mile acceptance rule.
+- Optional maximum miles acceptance rule.
+- Reject rules always run before acceptance rules.
+- Auto-Accept does nothing when no acceptance criteria are enabled.
+- Separate successful-action chimes: ACK for Accept, NACK for Reject.
+- Chime toggle; no action chimes in Test mode.
+- Updated decision log messages for ACCEPT / REJECT / MANUAL REVIEW.
+
+Default acceptance field values are $20.00, $1.25/mi, and 10.0 mi, but all acceptance rule checkboxes and Auto-Accept itself start OFF.
