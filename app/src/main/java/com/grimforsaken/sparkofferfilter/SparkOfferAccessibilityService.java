@@ -2,38 +2,44 @@ package com.grimforsaken.sparkofferfilter;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
+import android.app.Notification;
 import android.content.SharedPreferences;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
 
 import java.text.DateFormat;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public class SparkOfferAccessibilityService extends AccessibilityService {
     private static final String SPARK_PACKAGE = "com.walmart.sparkdriver";
-    private static final long FIRST_SCAN_DELAY_MS = 350L;
-    private static final long RETRY_SCAN_DELAY_MS = 900L;
+    private static final long EVENT_PAYLOAD_MAX_AGE_MS = 2500L;
     private static final long DUPLICATE_ACTION_WINDOW_MS = 15000L;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private SharedPreferences prefs;
     private ToneGenerator toneGenerator;
-    private boolean scanScheduled = false;
+    private String latestEventText = "";
+    private long latestEventTextAt = 0L;
     private String lastActionKey = "";
     private long lastActionAt = 0L;
 
-    private final Runnable scheduledScan = () -> {
-        scanScheduled = false;
-        evaluateCurrentOffer();
-    };
+    private final Runnable retry40 = () -> evaluateCurrentOffer(null, "retry +40ms");
+    private final Runnable retry120 = () -> evaluateCurrentOffer(null, "retry +120ms");
+    private final Runnable retry300 = () -> evaluateCurrentOffer(null, "retry +300ms");
 
     @Override
     public void onServiceConnected() {
@@ -44,8 +50,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         } catch (RuntimeException ignored) {
             toneGenerator = null;
         }
-        writeDecision("Service connected. Open Spark and wait for an offer. Live diagnostics are enabled.");
-        writeDiagnostic(Prefs.LAST_SCAN_STATUS, "Service connected; no Spark offer scanned yet.");
+        writeDecision("Service connected. Instant Scan is active: first complete Spark offer is evaluated immediately.");
+        writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                "Instant Scan ready; waiting for a Spark event or preloaded offer tree.");
     }
 
     @Override
@@ -56,15 +63,30 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         CharSequence packageName = event.getPackageName();
         if (packageName == null || !SPARK_PACKAGE.contentEquals(packageName)) return;
 
+        String eventPayload = collectEventPayload(event);
+        if (looksLikeOfferPayload(eventPayload)) {
+            latestEventText = eventPayload;
+            latestEventTextAt = System.currentTimeMillis();
+        }
+
         writeDiagnostic(Prefs.LAST_SPARK_EVENT,
-                timestamp() + " — Spark event type " + event.getEventType());
-        scheduleScan(FIRST_SCAN_DELAY_MS);
+                timestamp() + " — Spark event type " + event.getEventType()
+                        + (eventPayload.isEmpty() ? "" : "; event payload captured"));
+
+        AccessibilityNodeInfo source = event.getSource();
+        evaluateCurrentOffer(source, "immediate event");
+
+        handler.removeCallbacks(retry40);
+        handler.removeCallbacks(retry120);
+        handler.removeCallbacks(retry300);
+        handler.postDelayed(retry40, 40L);
+        handler.postDelayed(retry120, 120L);
+        handler.postDelayed(retry300, 300L);
     }
 
     @Override
     public void onInterrupt() {
-        handler.removeCallbacks(scheduledScan);
-        scanScheduled = false;
+        handler.removeCallbacksAndMessages(null);
     }
 
     @Override
@@ -77,40 +99,136 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         super.onDestroy();
     }
 
-    private void scheduleScan(long delayMs) {
-        if (scanScheduled) return;
-        scanScheduled = true;
-        handler.postDelayed(scheduledScan, delayMs);
-    }
-
-    private void evaluateCurrentOffer() {
+    private void evaluateCurrentOffer(AccessibilityNodeInfo eventSource, String scanSource) {
         if (prefs == null || !prefs.getBoolean(Prefs.MASTER_ENABLED, false)) return;
 
-        AccessibilityNodeInfo root = getRootInActiveWindow();
-        if (root == null) {
-            writeDiagnostic(Prefs.LAST_SCAN_STATUS, timestamp() + " — No active accessibility window.");
-            return;
-        }
-        if (root.getPackageName() == null || !SPARK_PACKAGE.contentEquals(root.getPackageName())) {
-            writeDiagnostic(Prefs.LAST_SCAN_STATUS, timestamp() + " — Active window is not Spark.");
-            return;
-        }
-
-        String currentText = collectVisibleText(root);
-        String normalizedCurrent = OfferEvaluator.normalize(currentText);
-        String controls = collectClickableLabels(root);
-        writeDiagnostic(Prefs.LAST_CAPTURE, truncate(currentText, 2400));
-
-        if (normalizedCurrent.isEmpty()) {
+        List<AccessibilityNodeInfo> candidates = collectSparkCandidateRoots(eventSource);
+        if (candidates.isEmpty()) {
             writeDiagnostic(Prefs.LAST_SCAN_STATUS,
-                    timestamp() + " — Spark detected, but Accessibility exposed no readable text. Controls: " + controls);
-            scheduleScan(RETRY_SCAN_DELAY_MS);
+                    timestamp() + " — Spark event received, but no Spark accessibility tree is attached yet ("
+                            + scanSource + ").");
             return;
         }
 
-        AccessibilityNodeInfo rejectNode = findDecisionControl(root, false);
-        AccessibilityNodeInfo acceptNode = findDecisionControl(root, true);
+        boolean sawReadableText = false;
+        String bestStatus = "";
+        String bestCapture = "";
 
+        for (AccessibilityNodeInfo root : candidates) {
+            String treeText = collectAllText(root);
+            if (!treeText.trim().isEmpty()) {
+                sawReadableText = true;
+                if (treeText.length() > bestCapture.length()) bestCapture = treeText;
+            }
+
+            String currentText = mergeWithFreshEventPayload(treeText);
+            if (OfferEvaluator.normalize(currentText).isEmpty()) continue;
+
+            AccessibilityNodeInfo rejectNode = findDecisionControl(root, false);
+            AccessibilityNodeInfo acceptNode = findDecisionControl(root, true);
+            String controls = collectClickableLabels(root);
+
+            OfferEvaluator.Result result = evaluateRules(currentText);
+            String controlStatus = "Accept=" + (acceptNode != null ? controlVisibility(acceptNode) : "missing")
+                    + ", Reject/Decline=" + (rejectNode != null ? controlVisibility(rejectNode) : "missing")
+                    + ". Controls: " + controls;
+
+            if (!result.ready) {
+                bestStatus = timestamp() + " — " + scanSource + ": " + result.reason + " " + controlStatus;
+                continue;
+            }
+
+            String offerKey = stableOfferKey(result);
+            long now = System.currentTimeMillis();
+            String details = formatOffer(result);
+            boolean dryRun = prefs.getBoolean(Prefs.DRY_RUN, true);
+
+            if (result.shouldReject) {
+                if (dryRun) {
+                    writeDecision("TEST MODE — would REJECT immediately. " + details
+                            + " Reason: " + result.reason);
+                    writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                            timestamp() + " — " + scanSource + ". " + controlStatus);
+                    writeDiagnostic(Prefs.LAST_CAPTURE, truncate(currentText, 3500));
+                    return;
+                }
+                if (isDuplicateAction(offerKey, now)) return;
+
+                if (rejectNode == null) {
+                    bestStatus = timestamp() + " — REJECT decision already known, waiting only for Spark to attach "
+                            + "a Reject/Decline control. " + controlStatus;
+                    continue;
+                }
+
+                if (clickControl(rejectNode)) {
+                    recordAction(offerKey, now);
+                    clearFreshEventPayload();
+                    playDecisionChime(false);
+                    writeDecision("REJECTED immediately. " + details + " Reason: " + result.reason);
+                } else {
+                    bestStatus = timestamp() + " — REJECT decision known; detected control could not yet be activated. "
+                            + controlStatus;
+                    continue;
+                }
+                writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                        timestamp() + " — " + scanSource + ". " + controlStatus);
+                writeDiagnostic(Prefs.LAST_CAPTURE, truncate(currentText, 3500));
+                return;
+            }
+
+            if (result.shouldAccept) {
+                if (dryRun) {
+                    writeDecision("TEST MODE — would ACCEPT immediately. " + details
+                            + " Reason: " + result.reason);
+                    writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                            timestamp() + " — " + scanSource + ". " + controlStatus);
+                    writeDiagnostic(Prefs.LAST_CAPTURE, truncate(currentText, 3500));
+                    return;
+                }
+                if (isDuplicateAction(offerKey, now)) return;
+
+                if (acceptNode == null) {
+                    bestStatus = timestamp() + " — ACCEPT decision already known, waiting only for Spark to attach "
+                            + "an Accept control. " + controlStatus;
+                    continue;
+                }
+
+                if (clickControl(acceptNode)) {
+                    recordAction(offerKey, now);
+                    clearFreshEventPayload();
+                    playDecisionChime(true);
+                    writeDecision("ACCEPTED immediately. " + details + " Reason: " + result.reason);
+                } else {
+                    bestStatus = timestamp() + " — ACCEPT decision known; detected control could not yet be activated. "
+                            + controlStatus;
+                    continue;
+                }
+                writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                        timestamp() + " — " + scanSource + ". " + controlStatus);
+                writeDiagnostic(Prefs.LAST_CAPTURE, truncate(currentText, 3500));
+                return;
+            }
+
+            writeDecision("LEFT FOR MANUAL REVIEW. " + details + " " + result.reason);
+            writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                    timestamp() + " — " + scanSource + ". " + controlStatus);
+            writeDiagnostic(Prefs.LAST_CAPTURE, truncate(currentText, 3500));
+            return;
+        }
+
+        if (!bestCapture.isEmpty()) {
+            writeDiagnostic(Prefs.LAST_CAPTURE, truncate(mergeWithFreshEventPayload(bestCapture), 3500));
+        }
+        if (!bestStatus.isEmpty()) {
+            writeDiagnostic(Prefs.LAST_SCAN_STATUS, bestStatus);
+        } else if (!sawReadableText) {
+            writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                    timestamp() + " — Spark accessibility tree exists, but no readable offer text is exposed yet ("
+                            + scanSource + ").");
+        }
+    }
+
+    private OfferEvaluator.Result evaluateRules(String currentText) {
         boolean rejectNoShopping = prefs.getBoolean(Prefs.REJECT_NO_SHOPPING, false);
         boolean rejectLowRate = prefs.getBoolean(Prefs.REJECT_LOW_RATE, true);
         double rejectThreshold = prefs.getFloat(Prefs.THRESHOLD, 1.25f);
@@ -124,9 +242,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         double acceptMaxMiles = prefs.getFloat(Prefs.ACCEPT_MAX_MILES, 10.0f);
         boolean acceptShoppingEnabled = prefs.getBoolean(Prefs.ACCEPT_SHOPPING_ENABLED, false);
         boolean acceptNoShippingEnabled = prefs.getBoolean(Prefs.ACCEPT_NO_SHIPPING_ENABLED, false);
-        boolean dryRun = prefs.getBoolean(Prefs.DRY_RUN, true);
 
-        OfferEvaluator.Result result = OfferEvaluator.evaluate(
+        return OfferEvaluator.evaluate(
                 currentText,
                 rejectNoShopping,
                 rejectLowRate,
@@ -140,78 +257,85 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 acceptMaxMiles,
                 acceptShoppingEnabled,
                 acceptNoShippingEnabled);
+    }
 
-        String controlStatus = "Accept=" + (acceptNode != null ? "found" : "missing")
-                + ", Reject/Decline=" + (rejectNode != null ? "found" : "missing")
-                + ". Clickable labels: " + controls;
+    private List<AccessibilityNodeInfo> collectSparkCandidateRoots(AccessibilityNodeInfo eventSource) {
+        List<AccessibilityNodeInfo> roots = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
 
-        if (!result.ready) {
-            writeDiagnostic(Prefs.LAST_SCAN_STATUS,
-                    timestamp() + " — Spark scanned. " + result.reason + " " + controlStatus);
-            scheduleScan(RETRY_SCAN_DELAY_MS);
-            return;
+        addCandidate(roots, seen, eventSource);
+        addCandidate(roots, seen, getRootInActiveWindow());
+
+        try {
+            List<AccessibilityWindowInfo> windows = getWindows();
+            if (windows != null) {
+                for (AccessibilityWindowInfo window : windows) {
+                    if (window == null) continue;
+                    addCandidate(roots, seen, window.getRoot());
+                }
+            }
+        } catch (RuntimeException ignored) {
         }
 
-        String offerKey = stableOfferKey(result);
-        long now = System.currentTimeMillis();
-        String details = formatOffer(result);
+        return roots;
+    }
 
-        if (result.shouldReject) {
-            if (dryRun) {
-                writeDecision("TEST MODE — would REJECT. " + details + " Reason: " + result.reason);
-                writeDiagnostic(Prefs.LAST_SCAN_STATUS, timestamp() + " — " + controlStatus);
-                return;
-            }
-            if (isDuplicateAction(offerKey, now)) return;
-            if (rejectNode == null) {
-                writeDecision("REJECT REQUIRED, but no Reject/Decline control was readable. "
-                        + details + " Reason: " + result.reason);
-                writeDiagnostic(Prefs.LAST_SCAN_STATUS, timestamp() + " — " + controlStatus);
-                scheduleScan(RETRY_SCAN_DELAY_MS);
-                return;
-            }
+    private void addCandidate(List<AccessibilityNodeInfo> roots, Set<String> seen,
+                              AccessibilityNodeInfo node) {
+        if (node == null || node.getPackageName() == null
+                || !SPARK_PACKAGE.contentEquals(node.getPackageName())) return;
 
-            if (clickControl(rejectNode)) {
-                recordAction(offerKey, now);
-                playDecisionChime(false);
-                writeDecision("REJECTED. " + details + " Reason: " + result.reason);
-            } else {
-                writeDecision("Wanted to REJECT but Android would not activate the detected control. "
-                        + details + " Reason: " + result.reason);
+        String key = node.getWindowId() + ":" + node.hashCode();
+        if (seen.add(key)) roots.add(node);
+    }
+
+    private String mergeWithFreshEventPayload(String treeText) {
+        long age = System.currentTimeMillis() - latestEventTextAt;
+        if (!latestEventText.isEmpty() && age >= 0 && age <= EVENT_PAYLOAD_MAX_AGE_MS) {
+            return latestEventText + "\n" + (treeText == null ? "" : treeText);
+        }
+        return treeText == null ? "" : treeText;
+    }
+
+    private void clearFreshEventPayload() {
+        latestEventText = "";
+        latestEventTextAt = 0L;
+    }
+
+    private String collectEventPayload(AccessibilityEvent event) {
+        StringBuilder out = new StringBuilder(1024);
+        if (event == null) return "";
+
+        for (CharSequence text : event.getText()) append(out, text);
+        append(out, event.getContentDescription());
+        append(out, event.getBeforeText());
+
+        Object parcelable = event.getParcelableData();
+        if (parcelable instanceof Notification) {
+            Notification notification = (Notification) parcelable;
+            Bundle extras = notification.extras;
+            if (extras != null) {
+                append(out, extras.getCharSequence(Notification.EXTRA_TITLE));
+                append(out, extras.getCharSequence(Notification.EXTRA_TEXT));
+                append(out, extras.getCharSequence(Notification.EXTRA_BIG_TEXT));
+                append(out, extras.getCharSequence(Notification.EXTRA_SUB_TEXT));
+                append(out, extras.getCharSequence(Notification.EXTRA_INFO_TEXT));
             }
-            writeDiagnostic(Prefs.LAST_SCAN_STATUS, timestamp() + " — " + controlStatus);
-            return;
         }
 
-        if (result.shouldAccept) {
-            if (dryRun) {
-                writeDecision("TEST MODE — would ACCEPT. " + details + " Reason: " + result.reason);
-                writeDiagnostic(Prefs.LAST_SCAN_STATUS, timestamp() + " — " + controlStatus);
-                return;
-            }
-            if (isDuplicateAction(offerKey, now)) return;
-            if (acceptNode == null) {
-                writeDecision("ACCEPT REQUIRED, but no Accept control was readable. "
-                        + details + " Reason: " + result.reason);
-                writeDiagnostic(Prefs.LAST_SCAN_STATUS, timestamp() + " — " + controlStatus);
-                scheduleScan(RETRY_SCAN_DELAY_MS);
-                return;
-            }
+        return out.toString();
+    }
 
-            if (clickControl(acceptNode)) {
-                recordAction(offerKey, now);
-                playDecisionChime(true);
-                writeDecision("ACCEPTED. " + details + " Reason: " + result.reason);
-            } else {
-                writeDecision("Wanted to ACCEPT but Android would not activate the detected control. "
-                        + details + " Reason: " + result.reason);
-            }
-            writeDiagnostic(Prefs.LAST_SCAN_STATUS, timestamp() + " — " + controlStatus);
-            return;
-        }
-
-        writeDecision("LEFT FOR MANUAL REVIEW. " + details + " " + result.reason);
-        writeDiagnostic(Prefs.LAST_SCAN_STATUS, timestamp() + " — " + controlStatus);
+    private boolean looksLikeOfferPayload(String text) {
+        if (text == null || text.trim().isEmpty()) return false;
+        String normalized = OfferEvaluator.normalize(text);
+        return text.contains("$")
+                || normalized.contains("MILE")
+                || normalized.contains("SAND SPRINGS")
+                || normalized.contains("SAPULPA")
+                || normalized.contains("SHOPPING")
+                || normalized.contains("SHIPPING")
+                || normalized.contains("OFFER");
     }
 
     private String stableOfferKey(OfferEvaluator.Result result) {
@@ -231,7 +355,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
 
     private void playDecisionChime(boolean accepted) {
         if (!prefs.getBoolean(Prefs.DECISION_CHIMES, true) || toneGenerator == null) return;
-        toneGenerator.startTone(accepted ? ToneGenerator.TONE_PROP_ACK : ToneGenerator.TONE_PROP_NACK,
+        toneGenerator.startTone(
+                accepted ? ToneGenerator.TONE_PROP_ACK : ToneGenerator.TONE_PROP_NACK,
                 accepted ? 260 : 340);
     }
 
@@ -241,13 +366,15 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             return true;
         }
 
+        if (!node.isVisibleToUser()) return false;
+
         Rect bounds = new Rect();
         node.getBoundsInScreen(bounds);
         if (bounds.isEmpty()) return false;
         Path path = new Path();
         path.moveTo(bounds.exactCenterX(), bounds.exactCenterY());
         GestureDescription gesture = new GestureDescription.Builder()
-                .addStroke(new GestureDescription.StrokeDescription(path, 0, 80))
+                .addStroke(new GestureDescription.StrokeDescription(path, 0, 60))
                 .build();
         return dispatchGesture(gesture, null, null);
     }
@@ -263,6 +390,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     }
 
     private AccessibilityNodeInfo findDecisionControl(AccessibilityNodeInfo root, boolean accept) {
+        if (root == null) return null;
         ArrayDeque<AccessibilityNodeInfo> queue = new ArrayDeque<>();
         queue.add(root);
         AccessibilityNodeInfo fallback = null;
@@ -272,15 +400,23 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             String label = nodeLabel(node).trim().toLowerCase(Locale.US);
 
             if (accept) {
-                if (label.equals("accept") || label.equals("accept offer") || label.equals("accept trip")) return node;
+                if (label.equals("accept") || label.equals("accept offer") || label.equals("accept trip")) {
+                    return node;
+                }
                 if (fallback == null && label.contains("accept")
-                        && !label.contains("accepted") && !label.contains("acceptance")) fallback = node;
+                        && !label.contains("accepted") && !label.contains("acceptance")) {
+                    fallback = node;
+                }
             } else {
                 if (label.equals("reject") || label.equals("decline")
                         || label.equals("reject offer") || label.equals("decline offer")
-                        || label.equals("reject trip") || label.equals("decline trip")) return node;
+                        || label.equals("reject trip") || label.equals("decline trip")) {
+                    return node;
+                }
                 if (fallback == null && (label.contains("reject") || label.contains("decline"))
-                        && !label.contains("rejected") && !label.contains("declined")) fallback = node;
+                        && !label.contains("rejected") && !label.contains("declined")) {
+                    fallback = node;
+                }
             }
 
             for (int i = 0; i < node.getChildCount(); i++) {
@@ -300,25 +436,21 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         return null;
     }
 
-    private String collectVisibleText(AccessibilityNodeInfo root) {
+    private String collectAllText(AccessibilityNodeInfo root) {
         if (root == null) return "";
-        StringBuilder out = new StringBuilder(4096);
+        StringBuilder out = new StringBuilder(6144);
         ArrayDeque<AccessibilityNodeInfo> queue = new ArrayDeque<>();
         queue.add(root);
 
         while (!queue.isEmpty()) {
             AccessibilityNodeInfo node = queue.removeFirst();
-            if (node.isVisibleToUser()) {
-                CharSequence text = node.getText();
-                CharSequence description = node.getContentDescription();
-                append(out, text);
-                if (description != null && (text == null || !description.toString().contentEquals(text))) {
-                    append(out, description);
-                }
-                if (node.getViewIdResourceName() != null) {
-                    append(out, "[viewId=" + node.getViewIdResourceName() + "]");
-                }
+            CharSequence text = node.getText();
+            CharSequence description = node.getContentDescription();
+            append(out, text);
+            if (description != null && (text == null || !description.toString().contentEquals(text))) {
+                append(out, description);
             }
+
             for (int i = 0; i < node.getChildCount(); i++) {
                 AccessibilityNodeInfo child = node.getChild(i);
                 if (child != null) queue.add(child);
@@ -328,19 +460,22 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     }
 
     private String collectClickableLabels(AccessibilityNodeInfo root) {
+        if (root == null) return "(none exposed)";
         StringBuilder out = new StringBuilder();
         ArrayDeque<AccessibilityNodeInfo> queue = new ArrayDeque<>();
         queue.add(root);
         int count = 0;
-        while (!queue.isEmpty() && count < 30) {
+
+        while (!queue.isEmpty() && count < 40) {
             AccessibilityNodeInfo node = queue.removeFirst();
-            if (node.isVisibleToUser() && (node.isClickable() || node.isLongClickable())) {
+            if (node.isClickable() || node.isLongClickable()) {
                 String label = nodeLabel(node).trim().replaceAll("\\s+", " ");
                 if (label.isEmpty() && node.getViewIdResourceName() != null) {
                     label = node.getViewIdResourceName();
                 }
                 if (!label.isEmpty()) {
                     if (out.length() > 0) out.append(" | ");
+                    if (!node.isVisibleToUser()) out.append("[preloaded] ");
                     out.append(truncate(label, 90));
                     count++;
                 }
@@ -351,6 +486,11 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             }
         }
         return out.length() == 0 ? "(none exposed)" : out.toString();
+    }
+
+    private String controlVisibility(AccessibilityNodeInfo node) {
+        if (node == null) return "missing";
+        return node.isVisibleToUser() ? "visible" : "preloaded";
     }
 
     private void append(StringBuilder out, CharSequence value) {
@@ -372,7 +512,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     }
 
     private String timestamp() {
-        return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM).format(new Date());
+        return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM)
+                .format(new Date());
     }
 
     private void writeDiagnostic(String key, String message) {
@@ -380,6 +521,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     }
 
     private void writeDecision(String message) {
-        if (prefs != null) prefs.edit().putString(Prefs.LAST_DECISION, timestamp() + "\n" + message).apply();
+        if (prefs != null) {
+            prefs.edit().putString(Prefs.LAST_DECISION, timestamp() + "\n" + message).apply();
+        }
     }
 }
