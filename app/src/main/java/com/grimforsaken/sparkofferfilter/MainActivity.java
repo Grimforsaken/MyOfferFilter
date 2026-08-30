@@ -43,6 +43,8 @@ public class MainActivity extends Activity {
         EditText acceptMinRate = findViewById(R.id.acceptMinRate);
         CheckBox acceptMaxMilesEnabled = findViewById(R.id.acceptMaxMilesEnabled);
         EditText acceptMaxMiles = findViewById(R.id.acceptMaxMiles);
+        CheckBox acceptShoppingEnabled = findViewById(R.id.acceptShoppingEnabled);
+        CheckBox acceptNoShippingEnabled = findViewById(R.id.acceptNoShippingEnabled);
 
         serviceStatus = findViewById(R.id.serviceStatus);
         latestDecision = findViewById(R.id.latestDecision);
@@ -62,6 +64,8 @@ public class MainActivity extends Activity {
         acceptMinRate.setText(format(prefs.getFloat(Prefs.ACCEPT_MIN_RATE, 1.25f), 2));
         acceptMaxMilesEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_MAX_MILES_ENABLED, false));
         acceptMaxMiles.setText(format(prefs.getFloat(Prefs.ACCEPT_MAX_MILES, 10.0f), 1));
+        acceptShoppingEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_SHOPPING_ENABLED, false));
+        acceptNoShippingEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_NO_SHIPPING_ENABLED, false));
 
         bindCheck(masterEnabled, Prefs.MASTER_ENABLED);
         bindCheck(dryRun, Prefs.DRY_RUN);
@@ -77,6 +81,8 @@ public class MainActivity extends Activity {
         bindNumber(acceptMinRate, Prefs.ACCEPT_MIN_RATE, 0.01f, 100.0f);
         bindCheck(acceptMaxMilesEnabled, Prefs.ACCEPT_MAX_MILES_ENABLED);
         bindNumber(acceptMaxMiles, Prefs.ACCEPT_MAX_MILES, 0.1f, 1000.0f);
+        bindCheck(acceptShoppingEnabled, Prefs.ACCEPT_SHOPPING_ENABLED);
+        bindCheck(acceptNoShippingEnabled, Prefs.ACCEPT_NO_SHIPPING_ENABLED);
 
         openAccessibility.setOnClickListener(v ->
                 startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
