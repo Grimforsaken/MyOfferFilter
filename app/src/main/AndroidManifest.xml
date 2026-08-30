@@ -16,6 +16,10 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".HistoryActivity"
+            android:exported="false" />
+
         <service
             android:name=".SparkOfferAccessibilityService"
             android:exported="true"

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@color/surface">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Offer History"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="12dp"
+        android:text="Live automatic accepts are logged when Accept is pressed. Rejections are logged only after the second REJECT OFFER confirmation is pressed."
+        android:textSize="13sp" />
+
+    <TabHost
+        android:id="@android:id/tabhost"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <TabWidget
+                android:id="@android:id/tabs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <FrameLayout
+                android:id="@android:id/tabcontent"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="8dp">
+
+                <ScrollView
+                    android:id="@+id/rejectedTab"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:fillViewport="true">
+
+                    <TextView
+                        android:id="@+id/rejectedHistory"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="12dp"
+                        android:background="#EEEEEE"
+                        android:text="No rejected orders recorded yet."
+                        android:textIsSelectable="true"
+                        android:textSize="14sp" />
+                </ScrollView>
+
+                <ScrollView
+                    android:id="@+id/acceptedTab"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:fillViewport="true">
+
+                    <TextView
+                        android:id="@+id/acceptedHistory"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="12dp"
+                        android:background="#EEEEEE"
+                        android:text="No accepted orders recorded yet."
+                        android:textIsSelectable="true"
+                        android:textSize="14sp" />
+                </ScrollView>
+            </FrameLayout>
+        </LinearLayout>
+    </TabHost>
+</LinearLayout>

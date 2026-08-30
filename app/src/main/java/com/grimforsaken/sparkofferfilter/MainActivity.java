@@ -45,6 +45,8 @@ public class MainActivity extends Activity {
         CheckBox dryRun = findViewById(R.id.dryRun);
         CheckBox decisionChimes = findViewById(R.id.decisionChimes);
         CheckBox rejectNoShopping = findViewById(R.id.rejectNoShopping);
+        CheckBox rejectMinPayEnabled = findViewById(R.id.rejectMinPayEnabled);
+        EditText rejectMinPay = findViewById(R.id.rejectMinPay);
         CheckBox rejectLowRate = findViewById(R.id.rejectLowRate);
         EditText rejectThreshold = findViewById(R.id.rejectThreshold);
 
@@ -61,12 +63,15 @@ public class MainActivity extends Activity {
         serviceStatus = findViewById(R.id.serviceStatus);
         latestDecision = findViewById(R.id.latestDecision);
         diagnostics = findViewById(R.id.diagnostics);
+        Button openHistory = findViewById(R.id.openHistory);
         Button openAccessibility = findViewById(R.id.openAccessibility);
 
         masterEnabled.setChecked(prefs.getBoolean(Prefs.MASTER_ENABLED, false));
         dryRun.setChecked(prefs.getBoolean(Prefs.DRY_RUN, true));
         decisionChimes.setChecked(prefs.getBoolean(Prefs.DECISION_CHIMES, true));
         rejectNoShopping.setChecked(prefs.getBoolean(Prefs.REJECT_NO_SHOPPING, false));
+        rejectMinPayEnabled.setChecked(prefs.getBoolean(Prefs.REJECT_MIN_PAY_ENABLED, true));
+        rejectMinPay.setText(format(prefs.getFloat(Prefs.REJECT_MIN_PAY, 15.00f), 2));
         rejectLowRate.setChecked(prefs.getBoolean(Prefs.REJECT_LOW_RATE, true));
         rejectThreshold.setText(format(prefs.getFloat(Prefs.THRESHOLD, 1.25f), 2));
 
@@ -84,6 +89,8 @@ public class MainActivity extends Activity {
         bindCheck(dryRun, Prefs.DRY_RUN);
         bindCheck(decisionChimes, Prefs.DECISION_CHIMES);
         bindCheck(rejectNoShopping, Prefs.REJECT_NO_SHOPPING);
+        bindCheck(rejectMinPayEnabled, Prefs.REJECT_MIN_PAY_ENABLED);
+        bindNumber(rejectMinPay, Prefs.REJECT_MIN_PAY, 0.01f, 10000.0f);
         bindCheck(rejectLowRate, Prefs.REJECT_LOW_RATE);
         bindNumber(rejectThreshold, Prefs.THRESHOLD, 0.10f, 20.0f);
 
@@ -97,6 +104,8 @@ public class MainActivity extends Activity {
         bindCheck(acceptShoppingEnabled, Prefs.ACCEPT_SHOPPING_ENABLED);
         bindCheck(acceptNoShippingEnabled, Prefs.ACCEPT_NO_SHIPPING_ENABLED);
 
+        openHistory.setOnClickListener(v ->
+                startActivity(new Intent(this, HistoryActivity.class)));
         openAccessibility.setOnClickListener(v ->
                 startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
     }

@@ -28,7 +28,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     private static final String SPARK_PACKAGE = "com.walmart.sparkdriver";
     private static final long EVENT_PAYLOAD_MAX_AGE_MS = 2500L;
     private static final long DUPLICATE_ACTION_WINDOW_MS = 15000L;
-    private static final long REJECT_CONFIRMATION_WINDOW_MS = 5000L;
+    private static final long REJECT_CONFIRMATION_WINDOW_MS = 6000L;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private SharedPreferences prefs;
@@ -40,10 +40,13 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     private boolean awaitingRejectConfirmation = false;
     private long rejectConfirmationDeadline = 0L;
     private String pendingRejectSummary = "";
+    private String pendingRejectOfferKey = "";
 
     private final Runnable retry40 = () -> evaluateCurrentOffer(null, "retry +40ms");
     private final Runnable retry120 = () -> evaluateCurrentOffer(null, "retry +120ms");
     private final Runnable retry300 = () -> evaluateCurrentOffer(null, "retry +300ms");
+    private final Runnable retry650 = () -> evaluateCurrentOffer(null, "retry +650ms");
+    private final Runnable retry1400 = () -> evaluateCurrentOffer(null, "retry +1400ms");
 
     @Override
     public void onServiceConnected() {
@@ -78,15 +81,18 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 timestamp() + " — Spark event type " + event.getEventType()
                         + (eventPayload.isEmpty() ? "" : "; event payload captured"));
 
-        AccessibilityNodeInfo source = event.getSource();
-        evaluateCurrentOffer(source, "immediate event");
+        evaluateCurrentOffer(event.getSource(), "immediate event");
 
         handler.removeCallbacks(retry40);
         handler.removeCallbacks(retry120);
         handler.removeCallbacks(retry300);
+        handler.removeCallbacks(retry650);
+        handler.removeCallbacks(retry1400);
         handler.postDelayed(retry40, 40L);
         handler.postDelayed(retry120, 120L);
         handler.postDelayed(retry300, 300L);
+        handler.postDelayed(retry650, 650L);
+        handler.postDelayed(retry1400, 1400L);
     }
 
     @Override
@@ -122,34 +128,42 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             if (now > rejectConfirmationDeadline) {
                 clearPendingRejectConfirmation();
                 writeDiagnostic(Prefs.LAST_SCAN_STATUS,
-                        timestamp() + " — Spark reject confirmation was not found within 5 seconds.");
+                        timestamp() + " — Spark reject confirmation was not found within 6 seconds; the offer can be retried.");
             } else {
                 for (AccessibilityNodeInfo root : candidates) {
                     String confirmationText = collectAllText(root);
                     if (!isRejectConfirmationScreen(confirmationText)) continue;
 
-                    AccessibilityNodeInfo confirmRejectNode = findDecisionControl(root, false);
+                    AccessibilityNodeInfo confirmRejectNode = findRejectConfirmationControl(root);
                     if (confirmRejectNode == null) {
                         writeDiagnostic(Prefs.LAST_SCAN_STATUS,
-                                timestamp() + " — Reject confirmation dialog found; waiting for the REJECT OFFER button.");
+                                timestamp() + " — Reject confirmation dialog found; waiting for the second REJECT OFFER button.");
                         return;
                     }
 
                     if (clickControl(confirmRejectNode)) {
                         String summary = pendingRejectSummary;
+                        String key = pendingRejectOfferKey;
                         clearPendingRejectConfirmation();
+                        recordAction(key, now);
                         clearFreshEventPayload();
                         playDecisionChime(false);
-                        writeDecision("REJECTED and confirmed immediately. " + summary);
+                        OfferHistory.addRejected(prefs, timestamp() + "\n" + summary);
+                        writeDecision("REJECTED and confirmed. " + summary);
                         writeDiagnostic(Prefs.LAST_SCAN_STATUS,
-                                timestamp() + " — Spark confirmation dialog: REJECT OFFER pressed automatically.");
+                                timestamp() + " — Spark confirmation dialog: second REJECT OFFER button pressed automatically.");
                         writeDiagnostic(Prefs.LAST_CAPTURE, truncate(confirmationText, 3500));
                     } else {
                         writeDiagnostic(Prefs.LAST_SCAN_STATUS,
-                                timestamp() + " — Reject confirmation dialog found, but REJECT OFFER could not yet be activated.");
+                                timestamp() + " — Reject confirmation dialog found, but the second REJECT OFFER button could not yet be activated.");
                     }
                     return;
                 }
+
+                writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                        timestamp() + " — First Reject was pressed; waiting for Spark's confirmation dialog and second REJECT OFFER button ("
+                                + scanSource + ").");
+                return;
             }
         }
 
@@ -204,11 +218,11 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 }
 
                 if (clickControl(rejectNode)) {
-                    recordAction(offerKey, now);
                     awaitingRejectConfirmation = true;
                     rejectConfirmationDeadline = now + REJECT_CONFIRMATION_WINDOW_MS;
+                    pendingRejectOfferKey = offerKey;
                     pendingRejectSummary = details + " Reason: " + result.reason;
-                    writeDecision("REJECT selected immediately; waiting for Spark confirmation and will press REJECT OFFER automatically. "
+                    writeDecision("REJECT selected; waiting for Spark confirmation and will press the second REJECT OFFER button automatically. "
                             + pendingRejectSummary);
                 } else {
                     bestStatus = timestamp() + " — REJECT decision known; detected control could not yet be activated. "
@@ -242,7 +256,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     recordAction(offerKey, now);
                     clearFreshEventPayload();
                     playDecisionChime(true);
-                    writeDecision("ACCEPTED immediately. " + details + " Reason: " + result.reason);
+                    String summary = details + " Reason: " + result.reason;
+                    OfferHistory.addAccepted(prefs, timestamp() + "\n" + summary);
+                    writeDecision("ACCEPTED immediately. " + summary);
                 } else {
                     bestStatus = timestamp() + " — ACCEPT decision known; detected control could not yet be activated. "
                             + controlStatus;
@@ -277,6 +293,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         boolean rejectNoShopping = prefs.getBoolean(Prefs.REJECT_NO_SHOPPING, false);
         boolean rejectLowRate = prefs.getBoolean(Prefs.REJECT_LOW_RATE, true);
         double rejectThreshold = prefs.getFloat(Prefs.THRESHOLD, 1.25f);
+        boolean rejectMinPayEnabled = prefs.getBoolean(Prefs.REJECT_MIN_PAY_ENABLED, true);
+        double rejectMinPay = prefs.getFloat(Prefs.REJECT_MIN_PAY, 15.00f);
 
         boolean autoAcceptEnabled = prefs.getBoolean(Prefs.AUTO_ACCEPT_ENABLED, false);
         boolean acceptMinPayEnabled = prefs.getBoolean(Prefs.ACCEPT_MIN_PAY_ENABLED, false);
@@ -293,6 +311,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 rejectNoShopping,
                 rejectLowRate,
                 rejectThreshold,
+                rejectMinPayEnabled,
+                rejectMinPay,
                 autoAcceptEnabled,
                 acceptMinPayEnabled,
                 acceptMinPay,
@@ -351,6 +371,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         awaitingRejectConfirmation = false;
         rejectConfirmationDeadline = 0L;
         pendingRejectSummary = "";
+        pendingRejectOfferKey = "";
     }
 
     private boolean isRejectConfirmationScreen(String text) {
@@ -388,6 +409,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         String normalized = OfferEvaluator.normalize(text);
         return text.contains("$")
                 || normalized.contains("MILE")
+                || normalized.contains("TULSA")
+                || normalized.contains("GLENPOOL")
+                || normalized.contains("JENKS")
                 || normalized.contains("SAND SPRINGS")
                 || normalized.contains("SAPULPA")
                 || normalized.contains("SHOPPING")
@@ -396,9 +420,10 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     }
 
     private String stableOfferKey(OfferEvaluator.Result result) {
-        return String.format(Locale.US, "%.2f:%.2f:%s:%s:%s",
-                result.pay, result.miles,
-                result.hasAllowedCity, result.hasShopping, result.hasShipping);
+        String pay = result.pay == null ? "?" : String.format(Locale.US, "%.2f", result.pay);
+        String miles = result.miles == null ? "?" : String.format(Locale.US, "%.2f", result.miles);
+        return pay + ":" + miles + ":" + result.hasShopping + ":" + result.hasShipping
+                + ":" + result.reason.hashCode();
     }
 
     private boolean isDuplicateAction(String offerKey, long now) {
@@ -406,7 +431,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     }
 
     private void recordAction(String offerKey, long now) {
-        lastActionKey = offerKey;
+        lastActionKey = offerKey == null ? "" : offerKey;
         lastActionAt = now;
     }
 
@@ -437,13 +462,18 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     }
 
     private String formatOffer(OfferEvaluator.Result result) {
-        return String.format(Locale.US, "$%.2f, %.1f mi, $%.2f/mi.%s%s%s",
-                result.pay,
-                result.miles,
-                result.dollarsPerMile,
-                result.hasAllowedCity ? " Allowed city found." : "",
-                result.hasShopping ? " Shopping shown." : "",
-                result.hasShipping ? " Shipping shown." : "");
+        List<String> parts = new ArrayList<>();
+        if (result.pay != null) parts.add(String.format(Locale.US, "$%.2f", result.pay));
+        if (result.miles != null) parts.add(String.format(Locale.US, "%.1f mi", result.miles));
+        if (result.dollarsPerMile != null) {
+            parts.add(String.format(Locale.US, "$%.2f/mi", result.dollarsPerMile));
+        }
+        if (parts.isEmpty()) parts.add("Offer details still loading");
+
+        StringBuilder out = new StringBuilder(String.join(", ", parts)).append('.');
+        if (result.hasShopping) out.append(" Shopping shown.");
+        if (result.hasShipping) out.append(" Shipping shown.");
+        return out.toString();
     }
 
     private AccessibilityNodeInfo findDecisionControl(AccessibilityNodeInfo root, boolean accept) {
@@ -475,6 +505,26 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     fallback = node;
                 }
             }
+
+            for (int i = 0; i < node.getChildCount(); i++) {
+                AccessibilityNodeInfo child = node.getChild(i);
+                if (child != null) queue.add(child);
+            }
+        }
+        return fallback;
+    }
+
+    private AccessibilityNodeInfo findRejectConfirmationControl(AccessibilityNodeInfo root) {
+        if (root == null) return null;
+        ArrayDeque<AccessibilityNodeInfo> queue = new ArrayDeque<>();
+        queue.add(root);
+        AccessibilityNodeInfo fallback = null;
+
+        while (!queue.isEmpty()) {
+            AccessibilityNodeInfo node = queue.removeFirst();
+            String label = nodeLabel(node).trim().toLowerCase(Locale.US).replaceAll("\\s+", " ");
+            if (label.equals("reject offer")) return node;
+            if (fallback == null && label.contains("reject offer")) fallback = node;
 
             for (int i = 0; i < node.getChildCount(); i++) {
                 AccessibilityNodeInfo child = node.getChild(i);

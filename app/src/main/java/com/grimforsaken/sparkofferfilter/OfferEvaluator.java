@@ -28,6 +28,7 @@ public final class OfferEvaluator {
             boolean acceptMaxMilesEnabled,
             double acceptMaxMiles) {
         return evaluate(visibleText, rejectNoShopping, rejectLowRate, rejectMinimumDollarsPerMile,
+                false, 15.00,
                 autoAcceptEnabled, acceptMinPayEnabled, acceptMinPay, acceptMinRateEnabled, acceptMinRate,
                 acceptMaxMilesEnabled, acceptMaxMiles, false, false);
     }
@@ -37,6 +38,28 @@ public final class OfferEvaluator {
             boolean rejectNoShopping,
             boolean rejectLowRate,
             double rejectMinimumDollarsPerMile,
+            boolean autoAcceptEnabled,
+            boolean acceptMinPayEnabled,
+            double acceptMinPay,
+            boolean acceptMinRateEnabled,
+            double acceptMinRate,
+            boolean acceptMaxMilesEnabled,
+            double acceptMaxMiles,
+            boolean acceptShoppingEnabled,
+            boolean acceptNoShippingEnabled) {
+        return evaluate(visibleText, rejectNoShopping, rejectLowRate, rejectMinimumDollarsPerMile,
+                false, 15.00,
+                autoAcceptEnabled, acceptMinPayEnabled, acceptMinPay, acceptMinRateEnabled, acceptMinRate,
+                acceptMaxMilesEnabled, acceptMaxMiles, acceptShoppingEnabled, acceptNoShippingEnabled);
+    }
+
+    public static Result evaluate(
+            String visibleText,
+            boolean rejectNoShopping,
+            boolean rejectLowRate,
+            double rejectMinimumDollarsPerMile,
+            boolean rejectMinPayEnabled,
+            double rejectMinPay,
             boolean autoAcceptEnabled,
             boolean acceptMinPayEnabled,
             double acceptMinPay,
@@ -60,12 +83,17 @@ public final class OfferEvaluator {
                 : null;
 
         if (hardRejectCity != null) {
-            double hardRejectPay = pay == null ? 0.0 : pay;
-            double hardRejectMiles = miles == null ? 0.0 : miles;
-            double hardRejectRate = pay != null && miles != null && miles > 0.0 ? pay / miles : 0.0;
+            Double rate = pay != null && miles != null && miles > 0.0 ? pay / miles : null;
             return Result.ready(true, false, hasAllowedCity, hasShopping, hasShipping,
-                    hardRejectPay, hardRejectMiles, hardRejectRate,
+                    pay, miles, rate,
                     hardRejectCity + " is a hard-reject city; pay and mileage are not required");
+        }
+
+        if (rejectMinPayEnabled && pay != null && pay + 1e-9 < rejectMinPay) {
+            Double rate = miles != null && miles > 0.0 ? pay / miles : null;
+            return Result.ready(true, false, hasAllowedCity, hasShopping, hasShipping,
+                    pay, miles, rate,
+                    String.format(Locale.US, "$%.2f is below reject minimum $%.2f", pay, rejectMinPay));
         }
 
         if (pay == null || miles == null || miles <= 0.0) {
@@ -76,11 +104,12 @@ public final class OfferEvaluator {
         double rate = pay / miles;
         List<String> rejectionReasons = new ArrayList<>();
 
-        if (!hasAllowedCity) {
-            rejectionReasons.add("neither SAND SPRINGS nor SAPULPA is shown");
-        }
         if (rejectNoShopping && !hasShopping) {
             rejectionReasons.add("Shopping is not shown");
+        }
+        if (rejectMinPayEnabled && pay + 1e-9 < rejectMinPay) {
+            rejectionReasons.add(String.format(Locale.US,
+                    "$%.2f is below reject minimum $%.2f", pay, rejectMinPay));
         }
         if (rejectLowRate && rate + 1e-9 < rejectMinimumDollarsPerMile) {
             rejectionReasons.add(String.format(Locale.US,

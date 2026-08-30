@@ -19,8 +19,13 @@
         <CheckBox android:id="@+id/decisionChimes" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Play separate Accept / Reject chimes" android:checked="true" />
 
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="AUTO-REJECT RULES" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Always reject unless the visible order contains SAND SPRINGS or SAPULPA. Reject rules take priority over Auto-Accept." android:textSize="16sp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="TULSA, GLENPOOL, and JENKS are always rejected. Other cities are allowed unless another enabled reject rule fails. Reject rules take priority over Auto-Accept." android:textSize="16sp" />
         <CheckBox android:id="@+id/rejectNoShopping" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Reject orders that do not show Shopping" />
+        <CheckBox android:id="@+id/rejectMinPayEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders below this minimum order dollar amount" android:checked="true" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Reject orders below $:  " />
+            <EditText android:id="@+id/rejectMinPay" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="15.00" android:selectAllOnFocus="true" />
+        </LinearLayout>
         <CheckBox android:id="@+id/rejectLowRate" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders below this dollars-per-mile amount" android:checked="true" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Reject below $ / mile:  " />
@@ -48,7 +53,8 @@
             <EditText android:id="@+id/acceptMaxMiles" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="10.0" android:selectAllOnFocus="true" />
         </LinearLayout>
 
-        <Button android:id="@+id/openAccessibility" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="22dp" android:text="Open Accessibility Settings" />
+        <Button android:id="@+id/openHistory" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="22dp" android:text="Accepted / Rejected Order History" />
+        <Button android:id="@+id/openAccessibility" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Open Accessibility Settings" />
         <TextView android:id="@+id/serviceStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Accessibility service status: checking…" android:textStyle="bold" />
 
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="LATEST DECISION" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
@@ -57,7 +63,7 @@
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="LIVE DIAGNOSTICS" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
         <TextView android:id="@+id/diagnostics" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:padding="12dp" android:background="#EEEEEE" android:text="No Spark Accessibility event received yet." android:textIsSelectable="true" android:textSize="12sp" />
 
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="The service now scans shortly after Spark Accessibility events instead of waiting for the whole offer screen to stop changing. It still requires readable pay and mileage before acting." android:textSize="14sp" android:textColor="@color/warning" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="The service scans shortly after Spark Accessibility events and can reject TULSA, GLENPOOL, or JENKS as soon as the city is exposed. A low-dollar rejection can also fire as soon as pay is readable. Other rules wait for the information they need." android:textSize="14sp" android:textColor="@color/warning" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:layout_marginBottom="24dp" android:text="If an offer is visible but no decision occurs, return here and read Live Diagnostics. It will show whether Spark events, visible text, and Accept/Reject controls were detected." android:textSize="13sp" />
     </LinearLayout>
 </ScrollView>

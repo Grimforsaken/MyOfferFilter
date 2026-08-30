@@ -8,6 +8,8 @@ final class Prefs {
     static final String REJECT_NO_SHOPPING = "reject_no_shopping";
     static final String REJECT_LOW_RATE = "reject_low_rate";
     static final String THRESHOLD = "threshold";
+    static final String REJECT_MIN_PAY_ENABLED = "reject_min_pay_enabled";
+    static final String REJECT_MIN_PAY = "reject_min_pay";
 
     static final String AUTO_ACCEPT_ENABLED = "auto_accept_enabled";
     static final String ACCEPT_MIN_PAY_ENABLED = "accept_min_pay_enabled";
@@ -24,6 +26,9 @@ final class Prefs {
     static final String LAST_SPARK_EVENT = "last_spark_event";
     static final String LAST_SCAN_STATUS = "last_scan_status";
     static final String LAST_CAPTURE = "last_capture";
+
+    static final String HISTORY_REJECTED = "history_rejected";
+    static final String HISTORY_ACCEPTED = "history_accepted";
 
     private Prefs() {}
 }
