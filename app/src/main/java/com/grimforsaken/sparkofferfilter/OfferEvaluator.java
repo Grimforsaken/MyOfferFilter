@@ -10,6 +10,7 @@ public final class OfferEvaluator {
     private static final Pattern DOLLAR_PATTERN = Pattern.compile("\\$\\s*([0-9]{1,5}(?:,[0-9]{3})*(?:\\.[0-9]{1,2})?)");
     private static final Pattern MILES_PATTERN = Pattern.compile("(?i)([0-9]+(?:\\.[0-9]+)?)\\s*(?:mi(?:le)?s?\\.?)\\b");
     private static final Pattern SHOP_DELIVER_PATTERN = Pattern.compile("(?i)\\bshop\\s*(?:&|and)\\s*deliver(?:y)?\\b");
+    private static final Pattern SHIPPING_PATTERN = Pattern.compile("(?i)\\bshipping\\b");
 
     private OfferEvaluator() {}
 
@@ -25,6 +26,25 @@ public final class OfferEvaluator {
             double acceptMinRate,
             boolean acceptMaxMilesEnabled,
             double acceptMaxMiles) {
+        return evaluate(visibleText, rejectNoShopping, rejectLowRate, rejectMinimumDollarsPerMile,
+                autoAcceptEnabled, acceptMinPayEnabled, acceptMinPay, acceptMinRateEnabled, acceptMinRate,
+                acceptMaxMilesEnabled, acceptMaxMiles, false, false);
+    }
+
+    public static Result evaluate(
+            String visibleText,
+            boolean rejectNoShopping,
+            boolean rejectLowRate,
+            double rejectMinimumDollarsPerMile,
+            boolean autoAcceptEnabled,
+            boolean acceptMinPayEnabled,
+            double acceptMinPay,
+            boolean acceptMinRateEnabled,
+            double acceptMinRate,
+            boolean acceptMaxMilesEnabled,
+            double acceptMaxMiles,
+            boolean acceptShoppingEnabled,
+            boolean acceptNoShippingEnabled) {
 
         String text = visibleText == null ? "" : visibleText;
         String normalized = normalize(text);
@@ -32,9 +52,10 @@ public final class OfferEvaluator {
         Double miles = parseMiles(text);
         boolean hasAllowedCity = normalized.contains("SAND SPRINGS") || normalized.contains("SAPULPA");
         boolean hasShopping = normalized.contains("SHOPPING") || SHOP_DELIVER_PATTERN.matcher(text).find();
+        boolean hasShipping = SHIPPING_PATTERN.matcher(text).find();
 
         if (pay == null || miles == null || miles <= 0.0) {
-            return Result.notReady(hasAllowedCity, hasShopping, pay, miles,
+            return Result.notReady(hasAllowedCity, hasShopping, hasShipping, pay, miles,
                     "Waiting for readable pay and mileage.");
         }
 
@@ -53,17 +74,18 @@ public final class OfferEvaluator {
         }
 
         if (!rejectionReasons.isEmpty()) {
-            return Result.ready(true, false, hasAllowedCity, hasShopping, pay, miles, rate,
+            return Result.ready(true, false, hasAllowedCity, hasShopping, hasShipping, pay, miles, rate,
                     String.join("; ", rejectionReasons));
         }
 
-        boolean anyAcceptRule = acceptMinPayEnabled || acceptMinRateEnabled || acceptMaxMilesEnabled;
+        boolean anyAcceptRule = acceptMinPayEnabled || acceptMinRateEnabled || acceptMaxMilesEnabled
+                || acceptShoppingEnabled || acceptNoShippingEnabled;
         if (!autoAcceptEnabled) {
-            return Result.ready(false, false, hasAllowedCity, hasShopping, pay, miles, rate,
+            return Result.ready(false, false, hasAllowedCity, hasShopping, hasShipping, pay, miles, rate,
                     String.format(Locale.US, "Offer passes reject rules at $%.2f/mi; Auto-Accept is off.", rate));
         }
         if (!anyAcceptRule) {
-            return Result.ready(false, false, hasAllowedCity, hasShopping, pay, miles, rate,
+            return Result.ready(false, false, hasAllowedCity, hasShopping, hasShipping, pay, miles, rate,
                     "Offer passes reject rules, but no Auto-Accept criteria are enabled.");
         }
 
@@ -77,13 +99,19 @@ public final class OfferEvaluator {
         if (acceptMaxMilesEnabled && miles - 1e-9 > acceptMaxMiles) {
             acceptFailures.add(String.format(Locale.US, "%.1f mi exceeds maximum %.1f mi", miles, acceptMaxMiles));
         }
+        if (acceptShoppingEnabled && !hasShopping) {
+            acceptFailures.add("Shopping is not shown");
+        }
+        if (acceptNoShippingEnabled && hasShipping) {
+            acceptFailures.add("Shipping is shown");
+        }
 
         if (acceptFailures.isEmpty()) {
-            return Result.ready(false, true, hasAllowedCity, hasShopping, pay, miles, rate,
+            return Result.ready(false, true, hasAllowedCity, hasShopping, hasShipping, pay, miles, rate,
                     "Offer passes every enabled Auto-Accept criterion.");
         }
 
-        return Result.ready(false, false, hasAllowedCity, hasShopping, pay, miles, rate,
+        return Result.ready(false, false, hasAllowedCity, hasShopping, hasShipping, pay, miles, rate,
                 "Not auto-accepted: " + String.join("; ", acceptFailures));
     }
 
@@ -158,35 +186,37 @@ public final class OfferEvaluator {
         public final boolean shouldAccept;
         public final boolean hasAllowedCity;
         public final boolean hasShopping;
+        public final boolean hasShipping;
         public final Double pay;
         public final Double miles;
         public final Double dollarsPerMile;
         public final String reason;
 
         private Result(boolean ready, boolean shouldReject, boolean shouldAccept,
-                       boolean hasAllowedCity, boolean hasShopping, Double pay,
+                       boolean hasAllowedCity, boolean hasShopping, boolean hasShipping, Double pay,
                        Double miles, Double dollarsPerMile, String reason) {
             this.ready = ready;
             this.shouldReject = shouldReject;
             this.shouldAccept = shouldAccept;
             this.hasAllowedCity = hasAllowedCity;
             this.hasShopping = hasShopping;
+            this.hasShipping = hasShipping;
             this.pay = pay;
             this.miles = miles;
             this.dollarsPerMile = dollarsPerMile;
             this.reason = reason;
         }
 
-        static Result notReady(boolean hasAllowedCity, boolean hasShopping, Double pay,
+        static Result notReady(boolean hasAllowedCity, boolean hasShopping, boolean hasShipping, Double pay,
                                Double miles, String reason) {
-            return new Result(false, false, false, hasAllowedCity, hasShopping,
+            return new Result(false, false, false, hasAllowedCity, hasShopping, hasShipping,
                     pay, miles, null, reason);
         }
 
         static Result ready(boolean shouldReject, boolean shouldAccept,
-                            boolean hasAllowedCity, boolean hasShopping,
+                            boolean hasAllowedCity, boolean hasShopping, boolean hasShipping,
                             Double pay, Double miles, Double dollarsPerMile, String reason) {
-            return new Result(true, shouldReject, shouldAccept, hasAllowedCity, hasShopping,
+            return new Result(true, shouldReject, shouldAccept, hasAllowedCity, hasShopping, hasShipping,
                     pay, miles, dollarsPerMile, reason);
         }
     }
