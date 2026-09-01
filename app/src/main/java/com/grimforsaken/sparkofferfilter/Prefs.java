@@ -4,7 +4,11 @@ final class Prefs {
     static final String NAME = "offer_filter";
     static final String MASTER_ENABLED = "master_enabled";
     static final String DRY_RUN = "dry_run";
+
+    static final String INSTALLER_CLEANUP_COMPLETED = "installer_cleanup_completed";
     static final String INSTALLER_CLEANUP_VERSION = "installer_cleanup_version";
+    static final String INSTALLER_URI = "installer_uri";
+    static final String APP_LANGUAGE = "app_language";
 
     static final String REJECT_NO_SHOPPING = "reject_no_shopping";
     static final String REJECT_LOW_RATE = "reject_low_rate";
@@ -27,6 +31,7 @@ final class Prefs {
     static final String ACCEPT_SHOPPING_ENABLED = "accept_shopping_enabled";
     static final String ACCEPT_NO_SHOPPING_ENABLED = "accept_no_shopping_enabled";
     static final String LEGACY_ACCEPT_NO_SHIPPING_ENABLED = "accept_no_shipping_enabled";
+    static final String ACCEPT_NO_SHIPPING_ENABLED = ACCEPT_NO_SHOPPING_ENABLED;
 
     static final String DECISION_CHIMES = "decision_chimes";
     static final String LAST_DECISION = "last_decision";
