@@ -24,7 +24,8 @@ final class Prefs {
     static final String ACCEPT_MAX_MILES_ENABLED = "accept_max_miles_enabled";
     static final String ACCEPT_MAX_MILES = "accept_max_miles";
     static final String ACCEPT_SHOPPING_ENABLED = "accept_shopping_enabled";
-    static final String ACCEPT_NO_SHIPPING_ENABLED = "accept_no_shipping_enabled";
+    static final String ACCEPT_NO_SHOPPING_ENABLED = "accept_no_shopping_enabled";
+    static final String LEGACY_ACCEPT_NO_SHIPPING_ENABLED = "accept_no_shipping_enabled";
 
     static final String DECISION_CHIMES = "decision_chimes";
     static final String LAST_DECISION = "last_decision";
