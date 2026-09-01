@@ -40,6 +40,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         prefs = getSharedPreferences(Prefs.NAME, MODE_PRIVATE);
+        migrateNoShoppingPreference();
 
         CheckBox masterEnabled = findViewById(R.id.masterEnabled);
         CheckBox dryRun = findViewById(R.id.dryRun);
@@ -62,7 +63,7 @@ public class MainActivity extends Activity {
         CheckBox acceptMaxMilesEnabled = findViewById(R.id.acceptMaxMilesEnabled);
         EditText acceptMaxMiles = findViewById(R.id.acceptMaxMiles);
         CheckBox acceptShoppingEnabled = findViewById(R.id.acceptShoppingEnabled);
-        CheckBox acceptNoShippingEnabled = findViewById(R.id.acceptNoShippingEnabled);
+        CheckBox acceptNoShoppingEnabled = findViewById(R.id.acceptNoShoppingEnabled);
 
         serviceStatus = findViewById(R.id.serviceStatus);
         latestDecision = findViewById(R.id.latestDecision);
@@ -91,7 +92,7 @@ public class MainActivity extends Activity {
         acceptMaxMilesEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_MAX_MILES_ENABLED, false));
         acceptMaxMiles.setText(format(prefs.getFloat(Prefs.ACCEPT_MAX_MILES, 10.0f), 1));
         acceptShoppingEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_SHOPPING_ENABLED, false));
-        acceptNoShippingEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_NO_SHIPPING_ENABLED, false));
+        acceptNoShoppingEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_NO_SHOPPING_ENABLED, false));
 
         refreshCityPolicy();
 
@@ -116,10 +117,21 @@ public class MainActivity extends Activity {
         bindCheck(acceptMaxMilesEnabled, Prefs.ACCEPT_MAX_MILES_ENABLED);
         bindNumber(acceptMaxMiles, Prefs.ACCEPT_MAX_MILES, 0.1f, 1000.0f);
         bindCheck(acceptShoppingEnabled, Prefs.ACCEPT_SHOPPING_ENABLED);
-        bindCheck(acceptNoShippingEnabled, Prefs.ACCEPT_NO_SHIPPING_ENABLED);
+        bindCheck(acceptNoShoppingEnabled, Prefs.ACCEPT_NO_SHOPPING_ENABLED);
 
         openHistory.setOnClickListener(v -> startActivity(new Intent(this, HistoryActivity.class)));
         openAccessibility.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+    }
+
+    private void migrateNoShoppingPreference() {
+        if (!prefs.contains(Prefs.ACCEPT_NO_SHOPPING_ENABLED)
+                && prefs.contains(Prefs.LEGACY_ACCEPT_NO_SHIPPING_ENABLED)) {
+            boolean oldValue = prefs.getBoolean(Prefs.LEGACY_ACCEPT_NO_SHIPPING_ENABLED, false);
+            prefs.edit()
+                    .putBoolean(Prefs.ACCEPT_NO_SHOPPING_ENABLED, oldValue)
+                    .remove(Prefs.LEGACY_ACCEPT_NO_SHIPPING_ENABLED)
+                    .apply();
+        }
     }
 
     private void bindCheck(CheckBox checkBox, String key) {
