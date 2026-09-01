@@ -1,7 +1,7 @@
 package com.grimforsaken.sparkofferfilter;
 
 final class OfferDecisionGuard {
-    static final long ACCEPT_INTENT_PROTECTION_MS = 3_000L;
+    static final long ACCEPT_INTENT_PROTECTION_MS = 30_000L;
     static final long ACCEPTED_OFFER_PROTECTION_MS = 60_000L;
     static final long REJECT_STABILITY_MS = 650L;
 
