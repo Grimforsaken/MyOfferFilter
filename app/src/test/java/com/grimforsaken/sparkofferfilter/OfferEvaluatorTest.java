@@ -22,7 +22,9 @@ public final class OfferEvaluatorTest {
         shouldNotAutoAcceptAboveMaxMiles();
         shouldNotAutoAcceptWithNoAcceptanceRules();
         shouldRequireShoppingForAutoAccept();
-        shouldRequireNoShippingForAutoAccept();
+        shouldRequireNoShoppingForAutoAccept();
+        shouldAllowEitherWhenBothShoppingChoicesChecked();
+        shouldIgnoreShoppingWhenNeitherChoiceCheckedAndAnotherRulePasses();
         shouldPreferEstimatedEarningsOverTip();
         shouldUseLargestMileage();
         shouldWaitWhenMileageMissing();
@@ -225,36 +227,64 @@ public final class OfferEvaluatorTest {
 
     private static void shouldRequireShoppingForAutoAccept() {
         CityPolicy.configure(false, false, false);
-        String withoutShopping = "$30.00\n8 miles\nBIXBY\nAccept\nReject";
-        OfferEvaluator.Result blocked = OfferEvaluator.evaluate(withoutShopping,
+        OfferEvaluator.Result blocked = OfferEvaluator.evaluate(
+                "$30.00\n8 miles\nBIXBY\nAccept\nReject",
                 false, false, 1.25, false, 15.00,
                 true, false, 20, false, 1.25, false, 10, true, false);
         require(!blocked.shouldReject && !blocked.shouldAccept,
-                "Shopping requirement should block auto-accept");
+                "Shopping-only choice should block an order without Shopping");
 
-        String withShopping = "$30.00\n8 miles\nBIXBY\nShopping\nAccept\nReject";
-        OfferEvaluator.Result allowed = OfferEvaluator.evaluate(withShopping,
+        OfferEvaluator.Result allowed = OfferEvaluator.evaluate(
+                "$30.00\n8 miles\nBIXBY\nShopping\nAccept\nReject",
                 false, false, 1.25, false, 15.00,
                 true, false, 20, false, 1.25, false, 10, true, false);
         require(!allowed.shouldReject && allowed.shouldAccept,
-                "Shopping requirement should allow Shopping offer");
+                "Shopping-only choice should allow a Shopping order");
     }
 
-    private static void shouldRequireNoShippingForAutoAccept() {
+    private static void shouldRequireNoShoppingForAutoAccept() {
         CityPolicy.configure(false, false, false);
-        String withShipping = "$30.00\n8 miles\nBIXBY\nShipping\nAccept\nReject";
-        OfferEvaluator.Result blocked = OfferEvaluator.evaluate(withShipping,
+        OfferEvaluator.Result blocked = OfferEvaluator.evaluate(
+                "$30.00\n8 miles\nBIXBY\nShopping\nAccept\nReject",
                 false, false, 1.25, false, 15.00,
                 true, false, 20, false, 1.25, false, 10, false, true);
         require(!blocked.shouldReject && !blocked.shouldAccept,
-                "Shipping presence should block no-Shipping auto-accept rule");
+                "No-Shopping choice should block a Shopping order");
 
-        String withoutShipping = "$30.00\n8 miles\nBIXBY\nCurbside pickup\nAccept\nReject";
-        OfferEvaluator.Result allowed = OfferEvaluator.evaluate(withoutShipping,
+        OfferEvaluator.Result allowed = OfferEvaluator.evaluate(
+                "$30.00\n8 miles\nBIXBY\nCurbside pickup\nAccept\nReject",
                 false, false, 1.25, false, 15.00,
                 true, false, 20, false, 1.25, false, 10, false, true);
         require(!allowed.shouldReject && allowed.shouldAccept,
-                "no-Shipping rule should allow offer without Shipping");
+                "No-Shopping choice should allow an order without Shopping");
+    }
+
+    private static void shouldAllowEitherWhenBothShoppingChoicesChecked() {
+        CityPolicy.configure(false, false, false);
+        OfferEvaluator.Result shopping = OfferEvaluator.evaluate(
+                "$30.00\n8 miles\nBIXBY\nShopping\nAccept\nReject",
+                false, false, 1.25, false, 15.00,
+                true, false, 20, false, 1.25, false, 10, true, true);
+        OfferEvaluator.Result nonShopping = OfferEvaluator.evaluate(
+                "$30.00\n8 miles\nBIXBY\nCurbside pickup\nAccept\nReject",
+                false, false, 1.25, false, 15.00,
+                true, false, 20, false, 1.25, false, 10, true, true);
+        require(shopping.shouldAccept && nonShopping.shouldAccept,
+                "both Shopping choices checked should allow either order type");
+    }
+
+    private static void shouldIgnoreShoppingWhenNeitherChoiceCheckedAndAnotherRulePasses() {
+        CityPolicy.configure(false, false, false);
+        OfferEvaluator.Result shopping = OfferEvaluator.evaluate(
+                "$30.00\n8 miles\nBIXBY\nShopping\nAccept\nReject",
+                false, false, 1.25, false, 15.00,
+                true, true, 20, false, 1.25, false, 10, false, false);
+        OfferEvaluator.Result nonShopping = OfferEvaluator.evaluate(
+                "$30.00\n8 miles\nBIXBY\nCurbside pickup\nAccept\nReject",
+                false, false, 1.25, false, 15.00,
+                true, true, 20, false, 1.25, false, 10, false, false);
+        require(shopping.shouldAccept && nonShopping.shouldAccept,
+                "neither Shopping choice checked should ignore Shopping status when another accept rule passes");
     }
 
     private static void shouldPreferEstimatedEarningsOverTip() {
