@@ -4,7 +4,7 @@ final class Prefs {
     static final String NAME = "offer_filter";
     static final String MASTER_ENABLED = "master_enabled";
     static final String DRY_RUN = "dry_run";
-    static final String INSTALLER_CLEANUP_DONE = "installer_cleanup_done";
+    static final String INSTALLER_CLEANUP_VERSION = "installer_cleanup_version";
 
     static final String REJECT_NO_SHOPPING = "reject_no_shopping";
     static final String REJECT_LOW_RATE = "reject_low_rate";
