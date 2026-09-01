@@ -8,6 +8,10 @@ final class CityPolicy {
 
     private CityPolicy() {}
 
+    static void configure(boolean tulsa, boolean glenpool, boolean jenks) {
+        configure(tulsa, glenpool, jenks, false);
+    }
+
     static void configure(boolean tulsa, boolean glenpool, boolean jenks, boolean samsClub) {
         allowTulsa = tulsa;
         allowGlenpool = glenpool;
