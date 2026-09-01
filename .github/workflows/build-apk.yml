@@ -23,9 +23,12 @@ jobs:
           mkdir -p /tmp/myofferfilter-tests
           javac -d /tmp/myofferfilter-tests \
             app/src/main/java/com/grimforsaken/sparkofferfilter/CityPolicy.java \
+            app/src/main/java/com/grimforsaken/sparkofferfilter/ActionSafetyGuard.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferEvaluator.java \
-            app/src/test/java/com/grimforsaken/sparkofferfilter/OfferEvaluatorTest.java
+            app/src/test/java/com/grimforsaken/sparkofferfilter/OfferEvaluatorTest.java \
+            app/src/test/java/com/grimforsaken/sparkofferfilter/SafetyAndLocationTest.java
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.OfferEvaluatorTest
+          java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.SafetyAndLocationTest
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
