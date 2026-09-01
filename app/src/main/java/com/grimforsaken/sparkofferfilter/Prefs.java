@@ -14,6 +14,7 @@ final class Prefs {
     static final String ALLOW_TULSA = "allow_tulsa";
     static final String ALLOW_GLENPOOL = "allow_glenpool";
     static final String ALLOW_JENKS = "allow_jenks";
+    static final String ALLOW_SAMS_CLUB = "allow_sams_club";
 
     static final String AUTO_ACCEPT_ENABLED = "auto_accept_enabled";
     static final String ACCEPT_MIN_PAY_ENABLED = "accept_min_pay_enabled";
