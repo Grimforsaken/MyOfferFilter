@@ -52,6 +52,7 @@ public class MainActivity extends Activity {
         CheckBox allowTulsa = findViewById(R.id.allowTulsa);
         CheckBox allowGlenpool = findViewById(R.id.allowGlenpool);
         CheckBox allowJenks = findViewById(R.id.allowJenks);
+        CheckBox allowSamsClub = findViewById(R.id.allowSamsClub);
 
         CheckBox autoAcceptEnabled = findViewById(R.id.autoAcceptEnabled);
         CheckBox acceptMinPayEnabled = findViewById(R.id.acceptMinPayEnabled);
@@ -80,6 +81,7 @@ public class MainActivity extends Activity {
         allowTulsa.setChecked(prefs.getBoolean(Prefs.ALLOW_TULSA, false));
         allowGlenpool.setChecked(prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false));
         allowJenks.setChecked(prefs.getBoolean(Prefs.ALLOW_JENKS, false));
+        allowSamsClub.setChecked(prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false));
 
         autoAcceptEnabled.setChecked(prefs.getBoolean(Prefs.AUTO_ACCEPT_ENABLED, false));
         acceptMinPayEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_MIN_PAY_ENABLED, false));
@@ -104,6 +106,7 @@ public class MainActivity extends Activity {
         bindCheck(allowTulsa, Prefs.ALLOW_TULSA);
         bindCheck(allowGlenpool, Prefs.ALLOW_GLENPOOL);
         bindCheck(allowJenks, Prefs.ALLOW_JENKS);
+        bindCheck(allowSamsClub, Prefs.ALLOW_SAMS_CLUB);
 
         bindCheck(autoAcceptEnabled, Prefs.AUTO_ACCEPT_ENABLED);
         bindCheck(acceptMinPayEnabled, Prefs.ACCEPT_MIN_PAY_ENABLED);
@@ -115,10 +118,8 @@ public class MainActivity extends Activity {
         bindCheck(acceptShoppingEnabled, Prefs.ACCEPT_SHOPPING_ENABLED);
         bindCheck(acceptNoShippingEnabled, Prefs.ACCEPT_NO_SHIPPING_ENABLED);
 
-        openHistory.setOnClickListener(v ->
-                startActivity(new Intent(this, HistoryActivity.class)));
-        openAccessibility.setOnClickListener(v ->
-                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+        openHistory.setOnClickListener(v -> startActivity(new Intent(this, HistoryActivity.class)));
+        openAccessibility.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
     }
 
     private void bindCheck(CheckBox checkBox, String key) {
@@ -132,7 +133,8 @@ public class MainActivity extends Activity {
         CityPolicy.configure(
                 prefs.getBoolean(Prefs.ALLOW_TULSA, false),
                 prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false),
-                prefs.getBoolean(Prefs.ALLOW_JENKS, false));
+                prefs.getBoolean(Prefs.ALLOW_JENKS, false),
+                prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false));
     }
 
     private void bindNumber(EditText editText, String key, float min, float max) {
@@ -142,9 +144,7 @@ public class MainActivity extends Activity {
             @Override public void afterTextChanged(Editable s) {
                 try {
                     float value = Float.parseFloat(s.toString());
-                    if (value >= min && value <= max) {
-                        prefs.edit().putFloat(key, value).apply();
-                    }
+                    if (value >= min && value <= max) prefs.edit().putFloat(key, value).apply();
                 } catch (NumberFormatException ignored) {}
             }
         });
@@ -154,16 +154,14 @@ public class MainActivity extends Activity {
         return String.format(Locale.US, decimals == 1 ? "%.1f" : "%.2f", (double) value);
     }
 
-    @Override
-    protected void onResume() {
+    @Override protected void onResume() {
         super.onResume();
         refreshCityPolicy();
         uiHandler.removeCallbacks(refreshRunnable);
         refreshRunnable.run();
     }
 
-    @Override
-    protected void onPause() {
+    @Override protected void onPause() {
         uiHandler.removeCallbacks(refreshRunnable);
         super.onPause();
     }
@@ -176,9 +174,7 @@ public class MainActivity extends Activity {
                 : "\nLIVE MODE is ON — matching offers may be accepted/rejected automatically.";
         serviceStatus.setText((enabled
                 ? "Accessibility service status: ON"
-                : "Accessibility service status: OFF — open settings and enable My Offer Filter service")
-                + modeText);
-
+                : "Accessibility service status: OFF — open settings and enable My Offer Filter service") + modeText);
         latestDecision.setText(prefs.getString(Prefs.LAST_DECISION, "No offer evaluated yet."));
         String event = prefs.getString(Prefs.LAST_SPARK_EVENT, "No Spark Accessibility event received yet.");
         String scan = prefs.getString(Prefs.LAST_SCAN_STATUS, "No Spark screen scan yet.");
@@ -188,21 +184,15 @@ public class MainActivity extends Activity {
 
     private boolean isAccessibilityServiceEnabled() {
         ComponentName expected = new ComponentName(this, SparkOfferAccessibilityService.class);
-
         AccessibilityManager manager = (AccessibilityManager) getSystemService(Context.ACCESSIBILITY_SERVICE);
         if (manager != null) {
-            List<AccessibilityServiceInfo> enabled = manager.getEnabledAccessibilityServiceList(
-                    AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
+            List<AccessibilityServiceInfo> enabled = manager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
             for (AccessibilityServiceInfo info : enabled) {
                 if (info == null) continue;
-
                 if (info.getResolveInfo() != null && info.getResolveInfo().serviceInfo != null) {
-                    ComponentName actual = new ComponentName(
-                            info.getResolveInfo().serviceInfo.packageName,
-                            info.getResolveInfo().serviceInfo.name);
+                    ComponentName actual = new ComponentName(info.getResolveInfo().serviceInfo.packageName, info.getResolveInfo().serviceInfo.name);
                     if (expected.equals(actual)) return true;
                 }
-
                 String id = info.getId();
                 if (id != null) {
                     ComponentName actual = ComponentName.unflattenFromString(id);
@@ -210,9 +200,7 @@ public class MainActivity extends Activity {
                 }
             }
         }
-
-        String rawEnabled = Settings.Secure.getString(
-                getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        String rawEnabled = Settings.Secure.getString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
         if (!TextUtils.isEmpty(rawEnabled)) {
             TextUtils.SimpleStringSplitter splitter = new TextUtils.SimpleStringSplitter(':');
             splitter.setString(rawEnabled);
@@ -221,7 +209,6 @@ public class MainActivity extends Activity {
                 if (expected.equals(actual)) return true;
             }
         }
-
         return false;
     }
 }
