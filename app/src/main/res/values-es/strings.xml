@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Safe Driver</string>
+    <string name="accessibility_service_name">Servicio Safe Driver</string>
+    <string name="accessibility_description">Lee el contenido visible de ofertas de Spark Driver, evalúa las reglas de seguridad elegidas por el usuario y puede pulsar los controles visibles de Aceptar o Rechazar. No solicita permiso de red.</string>
+</resources>
