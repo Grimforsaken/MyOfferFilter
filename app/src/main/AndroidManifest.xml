@@ -4,18 +4,24 @@
     <application
         android:name=".MyOfferFilterApp"
         android:allowBackup="false"
+        android:icon="@drawable/safe_driver_logo"
+        android:roundIcon="@drawable/safe_driver_logo"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".SetupActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
 
         <activity
             android:name=".HistoryActivity"
