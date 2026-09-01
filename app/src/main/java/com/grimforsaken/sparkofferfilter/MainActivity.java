@@ -21,6 +21,8 @@ import android.widget.TextView;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends Activity {
     private SharedPreferences prefs;
@@ -28,6 +30,7 @@ public class MainActivity extends Activity {
     private TextView latestDecision;
     private TextView diagnostics;
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
+
     private final Runnable refreshRunnable = new Runnable() {
         @Override public void run() {
             refreshStatus();
@@ -38,9 +41,17 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
         prefs = getSharedPreferences(Prefs.NAME, MODE_PRIVATE);
+        LanguageText.ensureDefault(prefs);
         migrateNoShoppingPreference();
+
+        if (!prefs.getBoolean(Prefs.INSTALLER_CLEANUP_COMPLETED, false)) {
+            startActivity(new Intent(this, SetupActivity.class));
+            finish();
+            return;
+        }
+
+        setContentView(R.layout.activity_main);
 
         CheckBox masterEnabled = findViewById(R.id.masterEnabled);
         CheckBox dryRun = findViewById(R.id.dryRun);
@@ -94,7 +105,7 @@ public class MainActivity extends Activity {
         acceptShoppingEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_SHOPPING_ENABLED, false));
         acceptNoShoppingEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_NO_SHOPPING_ENABLED, false));
 
-        refreshCityPolicy();
+        refreshLocationPolicy();
 
         bindCheck(masterEnabled, Prefs.MASTER_ENABLED);
         bindCheck(dryRun, Prefs.DRY_RUN);
@@ -119,8 +130,20 @@ public class MainActivity extends Activity {
         bindCheck(acceptShoppingEnabled, Prefs.ACCEPT_SHOPPING_ENABLED);
         bindCheck(acceptNoShoppingEnabled, Prefs.ACCEPT_NO_SHOPPING_ENABLED);
 
+        findViewById(R.id.languageEnglish).setOnClickListener(v -> {
+            LanguageText.setSpanish(prefs, false);
+            applyLanguage();
+            refreshStatus();
+        });
+        findViewById(R.id.languageSpanish).setOnClickListener(v -> {
+            LanguageText.setSpanish(prefs, true);
+            applyLanguage();
+            refreshStatus();
+        });
+
         openHistory.setOnClickListener(v -> startActivity(new Intent(this, HistoryActivity.class)));
         openAccessibility.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+        applyLanguage();
     }
 
     private void migrateNoShoppingPreference() {
@@ -134,14 +157,71 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void applyLanguage() {
+        boolean es = LanguageText.isSpanish(prefs);
+        ((TextView) findViewById(R.id.appTitle)).setText("Safe Driver");
+        ((TextView) findViewById(R.id.appSubtitle)).setText(es
+                ? "Compañero personal no oficial para Spark Driver. Usa el Modo de prueba mientras estés estacionado hasta que Diagnóstico en vivo muestre correctamente la información de la oferta."
+                : "Unofficial personal Spark Driver companion. Use Test mode while parked until Live Diagnostics shows the offer information correctly.");
+
+        ((CheckBox) findViewById(R.id.masterEnabled)).setText(es ? "Activar filtrado automático de ofertas" : "Enable automatic offer filtering");
+        ((CheckBox) findViewById(R.id.dryRun)).setText(es ? "Modo de prueba — registrar decisiones sin pulsar Aceptar ni Rechazar" : "Test mode — log decisions but do not click Accept or Reject");
+        ((CheckBox) findViewById(R.id.decisionChimes)).setText(es ? "Reproducir sonidos separados para Aceptar / Rechazar" : "Play separate Accept / Reject chimes");
+
+        ((TextView) findViewById(R.id.rejectHeading)).setText(es ? "REGLAS DE RECHAZO AUTOMÁTICO" : "AUTO-REJECT RULES");
+        ((TextView) findViewById(R.id.rejectPriorityText)).setText(es
+                ? "Las reglas de rechazo tienen prioridad sobre la aceptación automática, excepto que todas las acciones de rechazo quedan bloqueadas durante 10 segundos después de una aceptación automática exitosa."
+                : "Reject rules take priority over Auto-Accept, except that all rejection actions are locked for 10 seconds after a successful Auto-Accept.");
+
+        ((TextView) findViewById(R.id.locationHeading)).setText(es ? "EXCEPCIONES DE RECHAZO POR UBICACIÓN" : "LOCATION REJECTION EXCEPTIONS");
+        ((TextView) findViewById(R.id.locationHelp)).setText(es
+                ? "Tulsa, Glenpool, Jenks y Sam’s Club se rechazan de forma predeterminada. Marca una ubicación para permitir sus pedidos."
+                : "Tulsa, Glenpool, Jenks, and Sam’s Club are rejected by default. Check a location below to allow it.");
+        ((CheckBox) findViewById(R.id.allowTulsa)).setText(es ? "Permitir pedidos de Tulsa" : "Allow Tulsa offers");
+        ((CheckBox) findViewById(R.id.allowGlenpool)).setText(es ? "Permitir pedidos de Glenpool" : "Allow Glenpool offers");
+        ((CheckBox) findViewById(R.id.allowJenks)).setText(es ? "Permitir pedidos de Jenks" : "Allow Jenks offers");
+        ((CheckBox) findViewById(R.id.allowSamsClub)).setText(es ? "Permitir pedidos de Sam’s Club" : "Allow Sam’s Club offers");
+
+        ((CheckBox) findViewById(R.id.rejectNoShopping)).setText(es ? "Rechazar pedidos que no muestran Compras" : "Reject orders that do not show Shopping");
+        ((CheckBox) findViewById(R.id.rejectMinPayEnabled)).setText(es ? "Rechazar pedidos por debajo de este monto mínimo" : "Reject orders below this minimum order dollar amount");
+        ((TextView) findViewById(R.id.rejectMinPayLabel)).setText(es ? "Rechazar por debajo de $:  " : "Reject orders below $:  ");
+        ((CheckBox) findViewById(R.id.rejectLowRate)).setText(es ? "Rechazar pedidos por debajo de este monto de dólares por milla" : "Reject orders below this dollars-per-mile amount");
+        ((TextView) findViewById(R.id.rejectRateLabel)).setText(es ? "Rechazar por debajo de $ / milla:  " : "Reject below $ / mile:  ");
+
+        ((TextView) findViewById(R.id.acceptHeading)).setText(es ? "REGLAS DE ACEPTACIÓN AUTOMÁTICA" : "AUTO-ACCEPT RULES");
+        ((CheckBox) findViewById(R.id.autoAcceptEnabled)).setText(es ? "Activar aceptación automática" : "Enable Auto-Accept");
+        ((TextView) findViewById(R.id.acceptHelp)).setText(es
+                ? "Cada criterio activado debe cumplirse. Para Compras: una sola casilla limita el tipo de pedido, ambas permiten cualquiera y ninguna ignora el estado de Compras."
+                : "Every enabled Auto-Accept criterion must pass. Shopping choices work together: one checked limits the order type, both checked allow either type, neither checked ignores Shopping status.");
+        ((CheckBox) findViewById(R.id.acceptShoppingEnabled)).setText(es ? "Aceptar pedidos de compras" : "Accept Shopping orders");
+        ((CheckBox) findViewById(R.id.acceptNoShoppingEnabled)).setText(es ? "Aceptar pedidos que no incluyen compras" : "Accept orders that do not include Shopping");
+        ((CheckBox) findViewById(R.id.acceptMinPayEnabled)).setText(es ? "Requerir un monto mínimo del pedido" : "Require a minimum order dollar amount");
+        ((TextView) findViewById(R.id.acceptMinPayLabel)).setText(es ? "Monto mínimo $:  " : "Minimum order $:  ");
+        ((CheckBox) findViewById(R.id.acceptMinRateEnabled)).setText(es ? "Requerir un mínimo de dólares por milla" : "Require a minimum dollars-per-mile amount");
+        ((TextView) findViewById(R.id.acceptMinRateLabel)).setText(es ? "Mínimo $ / milla:  " : "Minimum $ / mile:  ");
+        ((CheckBox) findViewById(R.id.acceptMaxMilesEnabled)).setText(es ? "Requerir un máximo de millas" : "Require a maximum number of miles");
+        ((TextView) findViewById(R.id.acceptMaxMilesLabel)).setText(es ? "Máximo de millas:  " : "Maximum miles:  ");
+
+        ((Button) findViewById(R.id.openHistory)).setText(es ? "Historial de pedidos aceptados / rechazados" : "Accepted / Rejected Order History");
+        ((Button) findViewById(R.id.openAccessibility)).setText(es ? "Abrir ajustes de accesibilidad" : "Open Accessibility Settings");
+        ((TextView) findViewById(R.id.latestHeading)).setText(es ? "ÚLTIMA DECISIÓN" : "LATEST DECISION");
+        ((TextView) findViewById(R.id.diagnosticsHeading)).setText(es ? "DIAGNÓSTICO EN VIVO" : "LIVE DIAGNOSTICS");
+        ((TextView) findViewById(R.id.safetyHelp)).setText(es
+                ? "Después de una aceptación exitosa, todas las acciones y confirmaciones de rechazo se desactivan durante 10 segundos."
+                : "After a successful acceptance, all reject actions and reject confirmations are disabled for 10 seconds.");
+        ((TextView) findViewById(R.id.diagnosticHelp)).setText(es
+                ? "Si una oferta está visible pero no ocurre ninguna decisión, vuelve aquí y revisa Diagnóstico en vivo."
+                : "If an offer is visible but no decision occurs, return here and read Live Diagnostics.");
+    }
+
     private void bindCheck(CheckBox checkBox, String key) {
         checkBox.setOnCheckedChangeListener((button, checked) -> {
             prefs.edit().putBoolean(key, checked).apply();
-            refreshCityPolicy();
+            refreshLocationPolicy();
         });
     }
 
-    private void refreshCityPolicy() {
+    private void refreshLocationPolicy() {
         CityPolicy.configure(
                 prefs.getBoolean(Prefs.ALLOW_TULSA, false),
                 prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false),
@@ -168,7 +248,10 @@ public class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
-        refreshCityPolicy();
+        if (prefs != null) {
+            refreshLocationPolicy();
+            if (findViewById(R.id.appTitle) != null) applyLanguage();
+        }
         uiHandler.removeCallbacks(refreshRunnable);
         refreshRunnable.run();
     }
@@ -179,19 +262,63 @@ public class MainActivity extends Activity {
     }
 
     private void refreshStatus() {
+        if (serviceStatus == null || prefs == null) return;
+        boolean es = LanguageText.isSpanish(prefs);
         boolean enabled = isAccessibilityServiceEnabled();
         boolean testMode = prefs.getBoolean(Prefs.DRY_RUN, true);
-        String modeText = testMode
-                ? "\nTEST MODE is ON — decisions are evaluated, but Accept/Reject is NOT pressed."
-                : "\nLIVE MODE is ON — matching offers may be accepted/rejected automatically.";
+        String modeText = es
+                ? (testMode
+                    ? "\nMODO DE PRUEBA ACTIVADO — se evalúan decisiones, pero no se pulsa Aceptar/Rechazar."
+                    : "\nMODO EN VIVO ACTIVADO — las ofertas coincidentes pueden aceptarse/rechazarse automáticamente.")
+                : (testMode
+                    ? "\nTEST MODE is ON — decisions are evaluated, but Accept/Reject is NOT pressed."
+                    : "\nLIVE MODE is ON — matching offers may be accepted/rejected automatically.");
+
         serviceStatus.setText((enabled
-                ? "Accessibility service status: ON"
-                : "Accessibility service status: OFF — open settings and enable My Offer Filter service") + modeText);
-        latestDecision.setText(prefs.getString(Prefs.LAST_DECISION, "No offer evaluated yet."));
-        String event = prefs.getString(Prefs.LAST_SPARK_EVENT, "No Spark Accessibility event received yet.");
-        String scan = prefs.getString(Prefs.LAST_SCAN_STATUS, "No Spark screen scan yet.");
-        String capture = prefs.getString(Prefs.LAST_CAPTURE, "No readable Spark text captured yet.");
-        diagnostics.setText(event + "\n\n" + scan + "\n\nVISIBLE SPARK TEXT:\n" + capture);
+                ? (es ? "Estado del servicio de accesibilidad: ACTIVADO" : "Accessibility service status: ON")
+                : (es ? "Estado del servicio de accesibilidad: DESACTIVADO — abre los ajustes y activa Safe Driver"
+                      : "Accessibility service status: OFF — open settings and enable Safe Driver service")) + modeText);
+
+        String decision = prefs.getString(Prefs.LAST_DECISION, es ? "Aún no se ha evaluado ninguna oferta." : "No offer evaluated yet.");
+        String event = prefs.getString(Prefs.LAST_SPARK_EVENT, es ? "Aún no se ha recibido ningún evento de Spark." : "No Spark Accessibility event received yet.");
+        String scan = prefs.getString(Prefs.LAST_SCAN_STATUS, es ? "Aún no se ha escaneado ninguna pantalla de Spark." : "No Spark screen scan yet.");
+        String capture = prefs.getString(Prefs.LAST_CAPTURE, es ? "Aún no se ha capturado texto legible de Spark." : "No readable Spark text captured yet.");
+
+        latestDecision.setText(localizeSafetyDecision(decision, es));
+        diagnostics.setText(localizeSafetyStatus(event, es) + "\n\n"
+                + localizeSafetyStatus(scan, es) + "\n\n"
+                + (es ? "TEXTO DE SPARK:\n" : "VISIBLE SPARK TEXT:\n") + capture);
+    }
+
+    private String localizeSafetyDecision(String raw, boolean es) {
+        String acceptedRaw = "ACCEPTED immediately. Rejections locked for 10 seconds.";
+        String blockedRaw = "REJECTION BLOCKED by 10-second post-accept safety lock.";
+        if (raw.contains(acceptedRaw)) {
+            return raw.replace(acceptedRaw, es
+                    ? "Pedido aceptado. Las acciones de rechazo están desactivadas durante 10 segundos."
+                    : "Order accepted. Reject actions are disabled for 10 seconds.");
+        }
+        if (raw.contains(blockedRaw)) {
+            return raw.replace(blockedRaw, es
+                    ? "Rechazo bloqueado por el temporizador de seguridad posterior a la aceptación."
+                    : "Reject blocked by post-accept safety timer.");
+        }
+        return raw;
+    }
+
+    private String localizeSafetyStatus(String raw, boolean es) {
+        if (raw.contains("POST-ACCEPT SAFETY:")) {
+            Matcher m = Pattern.compile("([0-9]+(?:\\.[0-9]+)?) more seconds").matcher(raw);
+            String remaining = m.find() ? m.group(1) : null;
+            String base = es
+                    ? "Pedido aceptado. Las acciones de rechazo están desactivadas durante 10 segundos."
+                    : "Order accepted. Reject actions are disabled for 10 seconds.";
+            if (remaining != null) {
+                base += es ? " Quedan " + remaining + " segundos." : " " + remaining + " seconds remaining.";
+            }
+            return base;
+        }
+        return localizeSafetyDecision(raw, es);
     }
 
     private boolean isAccessibilityServiceEnabled() {
@@ -212,6 +339,7 @@ public class MainActivity extends Activity {
                 }
             }
         }
+
         String rawEnabled = Settings.Secure.getString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
         if (!TextUtils.isEmpty(rawEnabled)) {
             TextUtils.SimpleStringSplitter splitter = new TextUtils.SimpleStringSplitter(':');
