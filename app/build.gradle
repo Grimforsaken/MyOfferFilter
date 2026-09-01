@@ -2,6 +2,19 @@ plugins {
     id 'com.android.application'
 }
 
+def safeDriverGeneratedRes = file("$buildDir/generated/safeDriverRes")
+def safeDriverLogoFile = file("$safeDriverGeneratedRes/drawable/safe_driver_logo.webp")
+
+def generateSafeDriverLogo = tasks.register('generateSafeDriverLogo') {
+    inputs.file(file('src/main/safe_driver_logo.webp.b64'))
+    outputs.file(safeDriverLogoFile)
+    doLast {
+        safeDriverLogoFile.parentFile.mkdirs()
+        def encoded = file('src/main/safe_driver_logo.webp.b64').getText('UTF-8').trim()
+        safeDriverLogoFile.bytes = java.util.Base64.decoder.decode(encoded)
+    }
+}
+
 android {
     namespace 'com.grimforsaken.sparkofferfilter'
     compileSdk 36
@@ -10,8 +23,14 @@ android {
         applicationId 'com.grimforsaken.sparkofferfilter'
         minSdk 29
         targetSdk 36
-        versionCode 11
-        versionName '1.7.0'
+        versionCode 12
+        versionName '1.8.0'
+    }
+
+    sourceSets {
+        main {
+            res.srcDir safeDriverGeneratedRes
+        }
     }
 
     buildTypes {
@@ -24,5 +43,11 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name == 'preBuild') {
+        task.dependsOn(generateSafeDriverLogo)
     }
 }
