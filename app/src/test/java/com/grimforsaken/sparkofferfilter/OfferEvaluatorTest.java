@@ -2,29 +2,15 @@ package com.grimforsaken.sparkofferfilter;
 
 public final class OfferEvaluatorTest {
     public static void main(String[] args) {
-        shouldAllowOtherCities();
-        shouldHardRejectTulsa();
-        shouldHardRejectGlenpool();
-        shouldHardRejectJenks();
-        shouldAllowTulsaWhenChecked();
-        shouldAllowGlenpoolWhenChecked();
-        shouldAllowJenksWhenChecked();
-        shouldStillApplyOtherRejectRulesToAllowedCity();
-        shouldHardRejectBeforePayAndMilesLoad();
         shouldRejectBelowMinimumOrderAmount();
-        shouldKeepAtMinimumOrderAmount();
-        shouldRejectBelowMinimumBeforeMileageLoads();
-        shouldRejectMissingShoppingWhenEnabled();
         shouldRejectLowRate();
+        shouldRejectMissingShoppingWhenEnabled();
+        shouldRejectOverSelectedMaximumMiles();
+        shouldKeepOrderAtSelectedMaximumMiles();
         shouldAutoAcceptWhenAllEnabledRulesPass();
-        shouldNotAutoAcceptBelowMinimumPay();
-        shouldNotAutoAcceptBelowMinimumRate();
-        shouldNotAutoAcceptAboveMaxMiles();
-        shouldNotAutoAcceptWithNoAcceptanceRules();
+        shouldNotAutoAcceptAboveAcceptMaxMiles();
         shouldRequireShoppingForAutoAccept();
         shouldRequireNoShoppingForAutoAccept();
-        shouldAllowEitherWhenBothShoppingChoicesChecked();
-        shouldIgnoreShoppingWhenNeitherChoiceCheckedAndAnotherRulePasses();
         shouldPreferEstimatedEarningsOverTip();
         shouldUseLargestMileage();
         shouldWaitWhenMileageMissing();
@@ -44,105 +30,17 @@ public final class OfferEvaluatorTest {
                                                double minRate,
                                                boolean maxMilesOn,
                                                double maxMiles) {
-        CityPolicy.configure(false, false, false);
         return OfferEvaluator.evaluate(text,
-                rejectShopping,
-                rejectRate,
-                rejectRateMin,
-                rejectMinPayOn,
-                rejectMinPay,
-                autoAccept,
-                minPayOn,
-                minPay,
-                minRateOn,
-                minRate,
-                maxMilesOn,
-                maxMiles,
-                false,
-                false);
-    }
-
-    private static OfferEvaluator.Result evalAllowedCity(String city,
-                                                         boolean allowTulsa,
-                                                         boolean allowGlenpool,
-                                                         boolean allowJenks,
-                                                         boolean rejectMinPayOn,
-                                                         double rejectMinPay) {
-        CityPolicy.configure(allowTulsa, allowGlenpool, allowJenks);
-        OfferEvaluator.Result result = OfferEvaluator.evaluate(
-                "$30.00\n8 miles\n" + city + "\nShopping\nAccept\nReject",
-                false, false, 1.25,
+                rejectShopping, rejectRate, rejectRateMin,
                 rejectMinPayOn, rejectMinPay,
-                false, false, 20, false, 1.25, false, 10,
+                autoAccept, minPayOn, minPay,
+                minRateOn, minRate,
+                maxMilesOn, maxMiles,
                 false, false);
-        CityPolicy.configure(false, false, false);
-        return result;
-    }
-
-    private static void shouldAllowOtherCities() {
-        OfferEvaluator.Result r = eval("$20.00\n8 miles\nBIXBY\nShopping\nAccept\nReject",
-                false, false, 1.25,
-                false, 15.00,
-                false, false, 20, false, 1.25, false, 10);
-        require(r.ready && !r.shouldReject && !r.shouldAccept,
-                "non-city-filter cities should not be rejected by city");
-        require(!r.reason.contains("SAND SPRINGS") && !r.reason.contains("SAPULPA"),
-                "old allowed-city rule should be gone");
-    }
-
-    private static void shouldHardRejectTulsa() { assertHardRejectCity("TULSA"); }
-    private static void shouldHardRejectGlenpool() { assertHardRejectCity("GLENPOOL"); }
-    private static void shouldHardRejectJenks() { assertHardRejectCity("JENKS"); }
-
-    private static void assertHardRejectCity(String city) {
-        OfferEvaluator.Result r = eval("$50.00\n5 miles\n" + city + "\nShopping\nAccept\nReject",
-                false, false, 1.25,
-                true, 15.00,
-                true, true, 20, true, 1.25, true, 10);
-        require(r.ready && r.shouldReject && !r.shouldAccept, city + " must reject by default");
-        require(r.reason.contains(city), city + " rejection reason missing");
-    }
-
-    private static void shouldAllowTulsaWhenChecked() {
-        OfferEvaluator.Result r = evalAllowedCity("TULSA", true, false, false, false, 15.00);
-        require(r.ready && !r.shouldReject, "TULSA should be allowed when its checkbox is checked");
-    }
-
-    private static void shouldAllowGlenpoolWhenChecked() {
-        OfferEvaluator.Result r = evalAllowedCity("GLENPOOL", false, true, false, false, 15.00);
-        require(r.ready && !r.shouldReject, "GLENPOOL should be allowed when its checkbox is checked");
-    }
-
-    private static void shouldAllowJenksWhenChecked() {
-        OfferEvaluator.Result r = evalAllowedCity("JENKS", false, false, true, false, 15.00);
-        require(r.ready && !r.shouldReject, "JENKS should be allowed when its checkbox is checked");
-    }
-
-    private static void shouldStillApplyOtherRejectRulesToAllowedCity() {
-        CityPolicy.configure(true, false, false);
-        OfferEvaluator.Result r = OfferEvaluator.evaluate(
-                "$10.00\n8 miles\nTULSA\nShopping\nAccept\nReject",
-                false, false, 1.25,
-                true, 15.00,
-                false, false, 20, false, 1.25, false, 10,
-                false, false);
-        CityPolicy.configure(false, false, false);
-        require(r.ready && r.shouldReject,
-                "allowing a city must not bypass the minimum-order reject rule");
-        require(r.reason.contains("below reject minimum"),
-                "other reject rule should explain an allowed-city rejection");
-    }
-
-    private static void shouldHardRejectBeforePayAndMilesLoad() {
-        OfferEvaluator.Result r = eval("JENKS\nShopping\nReject", false, true, 1.25,
-                true, 15.00,
-                true, true, 20, true, 1.25, true, 10);
-        require(r.ready && r.shouldReject && !r.shouldAccept,
-                "blocked city should not wait for pay or mileage");
     }
 
     private static void shouldRejectBelowMinimumOrderAmount() {
-        OfferEvaluator.Result r = eval("$14.99\n7 miles\nBROKEN ARROW\nShopping\nReject",
+        OfferEvaluator.Result r = eval("$14.99\n7 miles\nShopping\nReject",
                 false, false, 1.25,
                 true, 15.00,
                 false, false, 20, false, 1.25, false, 10);
@@ -150,34 +48,8 @@ public final class OfferEvaluatorTest {
                 "offer below minimum order amount should reject");
     }
 
-    private static void shouldKeepAtMinimumOrderAmount() {
-        OfferEvaluator.Result r = eval("$15.00\n7 miles\nBROKEN ARROW\nShopping\nReject",
-                false, false, 1.25,
-                true, 15.00,
-                false, false, 20, false, 1.25, false, 10);
-        require(r.ready && !r.shouldReject,
-                "offer exactly at minimum order amount should not reject");
-    }
-
-    private static void shouldRejectBelowMinimumBeforeMileageLoads() {
-        OfferEvaluator.Result r = eval("Estimated earnings $12.50\nBROKEN ARROW\nReject",
-                false, true, 1.25,
-                true, 15.00,
-                false, false, 20, false, 1.25, false, 10);
-        require(r.ready && r.shouldReject,
-                "low-dollar rejection should not wait for mileage");
-    }
-
-    private static void shouldRejectMissingShoppingWhenEnabled() {
-        OfferEvaluator.Result r = eval("$20.00\n8 miles\nBIXBY\nReject",
-                true, false, 1.25,
-                false, 15.00,
-                true, true, 10, false, 1.25, false, 10);
-        require(r.shouldReject && !r.shouldAccept, "expected shopping rejection");
-    }
-
     private static void shouldRejectLowRate() {
-        OfferEvaluator.Result r = eval("$10.00\n10 miles\nBIXBY\nShopping\nReject",
+        OfferEvaluator.Result r = eval("$10.00\n10 miles\nShopping\nReject",
                 false, true, 1.25,
                 false, 15.00,
                 true, true, 5, false, 1.0, false, 20);
@@ -185,57 +57,68 @@ public final class OfferEvaluatorTest {
                 "expected low-rate rejection");
     }
 
+    private static void shouldRejectMissingShoppingWhenEnabled() {
+        OfferEvaluator.Result r = eval("$20.00\n8 miles\nReject",
+                true, false, 1.25,
+                false, 15.00,
+                true, true, 10, false, 1.25, false, 10);
+        require(r.shouldReject && !r.shouldAccept, "expected shopping rejection");
+    }
+
+    private static void shouldRejectOverSelectedMaximumMiles() {
+        OfferEvaluator.Result r = OfferEvaluator.evaluate(
+                "$30.00\n15.1 miles\nShopping\nReject",
+                false, false, 1.25,
+                false, 15.00,
+                true, 15.0,
+                false, false, 20.00,
+                false, 1.25,
+                false, 20.0,
+                false, false);
+        require(r.ready && r.shouldReject && r.reason.contains("exceeds reject maximum 15.0 mi"),
+                "orders over the selected reject mileage must reject");
+    }
+
+    private static void shouldKeepOrderAtSelectedMaximumMiles() {
+        OfferEvaluator.Result r = OfferEvaluator.evaluate(
+                "$30.00\n15.0 miles\nShopping\nReject",
+                false, false, 1.25,
+                false, 15.00,
+                true, 15.0,
+                false, false, 20.00,
+                false, 1.25,
+                false, 20.0,
+                false, false);
+        require(r.ready && !r.shouldReject,
+                "order exactly at the selected reject mileage should not reject for mileage");
+    }
+
     private static void shouldAutoAcceptWhenAllEnabledRulesPass() {
-        OfferEvaluator.Result r = eval("Estimated earnings $30.00\n12 miles\nBIXBY\nShopping\nAccept\nReject",
+        OfferEvaluator.Result r = eval("Estimated earnings $30.00\n12 miles\nShopping\nAccept\nReject",
                 false, true, 1.25,
                 true, 15.00,
                 true, true, 25, true, 2.00, true, 15);
         require(!r.shouldReject && r.shouldAccept, "expected auto-accept");
     }
 
-    private static void shouldNotAutoAcceptBelowMinimumPay() {
-        OfferEvaluator.Result r = eval("$19.99\n8 miles\nBIXBY\nAccept\nReject",
-                false, false, 1.25,
-                false, 15.00,
-                true, true, 20, false, 1.25, false, 10);
-        require(!r.shouldReject && !r.shouldAccept, "minimum pay should block auto-accept");
-    }
-
-    private static void shouldNotAutoAcceptBelowMinimumRate() {
-        OfferEvaluator.Result r = eval("$20.00\n20 miles\nBIXBY\nAccept\nReject",
-                false, false, 1.25,
-                false, 15.00,
-                true, false, 20, true, 1.25, false, 10);
-        require(!r.shouldReject && !r.shouldAccept, "minimum accept rate should block auto-accept");
-    }
-
-    private static void shouldNotAutoAcceptAboveMaxMiles() {
-        OfferEvaluator.Result r = eval("$50.00\n10.1 miles\nBIXBY\nAccept\nReject",
+    private static void shouldNotAutoAcceptAboveAcceptMaxMiles() {
+        OfferEvaluator.Result r = eval("$50.00\n10.1 miles\nAccept\nReject",
                 false, false, 1.25,
                 false, 15.00,
                 true, false, 20, false, 1.25, true, 10.0);
-        require(!r.shouldReject && !r.shouldAccept, "max miles should block auto-accept");
-    }
-
-    private static void shouldNotAutoAcceptWithNoAcceptanceRules() {
-        OfferEvaluator.Result r = eval("$50.00\n5 miles\nBIXBY\nAccept\nReject",
-                false, false, 1.25,
-                false, 15.00,
-                true, false, 20, false, 1.25, false, 10);
-        require(!r.shouldReject && !r.shouldAccept, "no acceptance criteria must mean no auto-accept");
+        require(!r.shouldReject && !r.shouldAccept, "accept max miles should block auto-accept");
     }
 
     private static void shouldRequireShoppingForAutoAccept() {
-        CityPolicy.configure(false, false, false);
         OfferEvaluator.Result blocked = OfferEvaluator.evaluate(
-                "$30.00\n8 miles\nBIXBY\nAccept\nReject",
+                "$30.00\n8 miles\nAccept\nReject",
                 false, false, 1.25, false, 15.00,
                 true, false, 20, false, 1.25, false, 10, true, false);
         require(!blocked.shouldReject && !blocked.shouldAccept,
                 "Shopping-only choice should block an order without Shopping");
 
         OfferEvaluator.Result allowed = OfferEvaluator.evaluate(
-                "$30.00\n8 miles\nBIXBY\nShopping\nAccept\nReject",
+                "$30.00\n8 miles\nShopping\nAccept\nReject",
                 false, false, 1.25, false, 15.00,
                 true, false, 20, false, 1.25, false, 10, true, false);
         require(!allowed.shouldReject && allowed.shouldAccept,
@@ -243,62 +126,33 @@ public final class OfferEvaluatorTest {
     }
 
     private static void shouldRequireNoShoppingForAutoAccept() {
-        CityPolicy.configure(false, false, false);
         OfferEvaluator.Result blocked = OfferEvaluator.evaluate(
-                "$30.00\n8 miles\nBIXBY\nShopping\nAccept\nReject",
+                "$30.00\n8 miles\nShopping\nAccept\nReject",
                 false, false, 1.25, false, 15.00,
                 true, false, 20, false, 1.25, false, 10, false, true);
         require(!blocked.shouldReject && !blocked.shouldAccept,
                 "No-Shopping choice should block a Shopping order");
 
         OfferEvaluator.Result allowed = OfferEvaluator.evaluate(
-                "$30.00\n8 miles\nBIXBY\nCurbside pickup\nAccept\nReject",
+                "$30.00\n8 miles\nCurbside pickup\nAccept\nReject",
                 false, false, 1.25, false, 15.00,
                 true, false, 20, false, 1.25, false, 10, false, true);
         require(!allowed.shouldReject && allowed.shouldAccept,
                 "No-Shopping choice should allow an order without Shopping");
     }
 
-    private static void shouldAllowEitherWhenBothShoppingChoicesChecked() {
-        CityPolicy.configure(false, false, false);
-        OfferEvaluator.Result shopping = OfferEvaluator.evaluate(
-                "$30.00\n8 miles\nBIXBY\nShopping\nAccept\nReject",
-                false, false, 1.25, false, 15.00,
-                true, false, 20, false, 1.25, false, 10, true, true);
-        OfferEvaluator.Result nonShopping = OfferEvaluator.evaluate(
-                "$30.00\n8 miles\nBIXBY\nCurbside pickup\nAccept\nReject",
-                false, false, 1.25, false, 15.00,
-                true, false, 20, false, 1.25, false, 10, true, true);
-        require(shopping.shouldAccept && nonShopping.shouldAccept,
-                "both Shopping choices checked should allow either order type");
-    }
-
-    private static void shouldIgnoreShoppingWhenNeitherChoiceCheckedAndAnotherRulePasses() {
-        CityPolicy.configure(false, false, false);
-        OfferEvaluator.Result shopping = OfferEvaluator.evaluate(
-                "$30.00\n8 miles\nBIXBY\nShopping\nAccept\nReject",
-                false, false, 1.25, false, 15.00,
-                true, true, 20, false, 1.25, false, 10, false, false);
-        OfferEvaluator.Result nonShopping = OfferEvaluator.evaluate(
-                "$30.00\n8 miles\nBIXBY\nCurbside pickup\nAccept\nReject",
-                false, false, 1.25, false, 15.00,
-                true, true, 20, false, 1.25, false, 10, false, false);
-        require(shopping.shouldAccept && nonShopping.shouldAccept,
-                "neither Shopping choice checked should ignore Shopping status when another accept rule passes");
-    }
-
     private static void shouldPreferEstimatedEarningsOverTip() {
-        Double pay = OfferEvaluator.parseBestPay("Tip $5.00\nEstimated earnings $22.50\n15 miles\nBIXBY");
+        Double pay = OfferEvaluator.parseBestPay("Tip $5.00\nEstimated earnings $22.50\n15 miles");
         require(pay != null && Math.abs(pay - 22.50) < 0.001, "pay context selection failed");
     }
 
     private static void shouldUseLargestMileage() {
-        Double miles = OfferEvaluator.parseMiles("$25.00\n2.2 miles\n14.8 miles\nBIXBY");
+        Double miles = OfferEvaluator.parseMiles("$25.00\n2.2 miles\n14.8 miles");
         require(miles != null && Math.abs(miles - 14.8) < 0.001, "mileage selection failed");
     }
 
     private static void shouldWaitWhenMileageMissing() {
-        OfferEvaluator.Result r = eval("$25.00\nBIXBY\nShopping\nAccept\nReject",
+        OfferEvaluator.Result r = eval("$25.00\nShopping\nAccept\nReject",
                 true, true, 1.25,
                 true, 15.00,
                 true, true, 20, true, 1.25, true, 10);
