@@ -44,13 +44,6 @@ public class MainActivity extends Activity {
         prefs = getSharedPreferences(Prefs.NAME, MODE_PRIVATE);
         LanguageText.ensureDefault(prefs);
         migrateNoShoppingPreference();
-
-        if (!prefs.getBoolean(Prefs.INSTALLER_CLEANUP_COMPLETED, false)) {
-            startActivity(new Intent(this, SetupActivity.class));
-            finish();
-            return;
-        }
-
         setContentView(R.layout.activity_main);
 
         CheckBox masterEnabled = findViewById(R.id.masterEnabled);
@@ -61,6 +54,11 @@ public class MainActivity extends Activity {
         EditText rejectMinPay = findViewById(R.id.rejectMinPay);
         CheckBox rejectLowRate = findViewById(R.id.rejectLowRate);
         EditText rejectThreshold = findViewById(R.id.rejectThreshold);
+        CheckBox rejectMaxMilesEnabled = findViewById(R.id.rejectMaxMilesEnabled);
+        EditText rejectMaxMiles = findViewById(R.id.rejectMaxMiles);
+
+        CheckBox allowSandSprings = findViewById(R.id.allowSandSprings);
+        CheckBox allowSapulpa = findViewById(R.id.allowSapulpa);
         CheckBox allowTulsa = findViewById(R.id.allowTulsa);
         CheckBox allowGlenpool = findViewById(R.id.allowGlenpool);
         CheckBox allowJenks = findViewById(R.id.allowJenks);
@@ -90,6 +88,11 @@ public class MainActivity extends Activity {
         rejectMinPay.setText(format(prefs.getFloat(Prefs.REJECT_MIN_PAY, 15.00f), 2));
         rejectLowRate.setChecked(prefs.getBoolean(Prefs.REJECT_LOW_RATE, true));
         rejectThreshold.setText(format(prefs.getFloat(Prefs.THRESHOLD, 1.25f), 2));
+        rejectMaxMilesEnabled.setChecked(prefs.getBoolean(Prefs.REJECT_MAX_MILES_ENABLED, false));
+        rejectMaxMiles.setText(format(prefs.getFloat(Prefs.REJECT_MAX_MILES, 20.0f), 1));
+
+        allowSandSprings.setChecked(prefs.getBoolean(Prefs.ALLOW_SAND_SPRINGS, true));
+        allowSapulpa.setChecked(prefs.getBoolean(Prefs.ALLOW_SAPULPA, true));
         allowTulsa.setChecked(prefs.getBoolean(Prefs.ALLOW_TULSA, false));
         allowGlenpool.setChecked(prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false));
         allowJenks.setChecked(prefs.getBoolean(Prefs.ALLOW_JENKS, false));
@@ -115,6 +118,11 @@ public class MainActivity extends Activity {
         bindNumber(rejectMinPay, Prefs.REJECT_MIN_PAY, 0.01f, 10000.0f);
         bindCheck(rejectLowRate, Prefs.REJECT_LOW_RATE);
         bindNumber(rejectThreshold, Prefs.THRESHOLD, 0.10f, 20.0f);
+        bindCheck(rejectMaxMilesEnabled, Prefs.REJECT_MAX_MILES_ENABLED);
+        bindNumber(rejectMaxMiles, Prefs.REJECT_MAX_MILES, 0.1f, 1000.0f);
+
+        bindCheck(allowSandSprings, Prefs.ALLOW_SAND_SPRINGS);
+        bindCheck(allowSapulpa, Prefs.ALLOW_SAPULPA);
         bindCheck(allowTulsa, Prefs.ALLOW_TULSA);
         bindCheck(allowGlenpool, Prefs.ALLOW_GLENPOOL);
         bindCheck(allowJenks, Prefs.ALLOW_JENKS);
@@ -170,23 +178,27 @@ public class MainActivity extends Activity {
 
         ((TextView) findViewById(R.id.rejectHeading)).setText(es ? "REGLAS DE RECHAZO AUTOMÁTICO" : "AUTO-REJECT RULES");
         ((TextView) findViewById(R.id.rejectPriorityText)).setText(es
-                ? "Las reglas de rechazo tienen prioridad sobre la aceptación automática, excepto que todas las acciones de rechazo quedan bloqueadas durante 10 segundos después de una aceptación automática exitosa."
-                : "Reject rules take priority over Auto-Accept, except that all rejection actions are locked for 10 seconds after a successful Auto-Accept.");
+                ? "Las ubicaciones no seleccionadas y las demás reglas de rechazo se aplican antes de la aceptación automática. La pantalla «Estimated total» nunca se rechaza automáticamente."
+                : "Unchecked locations and other reject rules are applied before Auto-Accept. The “Estimated total” screen is never auto-rejected.");
 
-        ((TextView) findViewById(R.id.locationHeading)).setText(es ? "EXCEPCIONES DE RECHAZO POR UBICACIÓN" : "LOCATION REJECTION EXCEPTIONS");
+        ((TextView) findViewById(R.id.locationHeading)).setText(es ? "UBICACIONES ACEPTADAS" : "ACCEPTED LOCATIONS");
         ((TextView) findViewById(R.id.locationHelp)).setText(es
-                ? "Tulsa, Glenpool, Jenks y Sam’s Club se rechazan de forma predeterminada. Marca una ubicación para permitir sus pedidos."
-                : "Tulsa, Glenpool, Jenks, and Sam’s Club are rejected by default. Check a location below to allow it.");
-        ((CheckBox) findViewById(R.id.allowTulsa)).setText(es ? "Permitir pedidos de Tulsa" : "Allow Tulsa offers");
-        ((CheckBox) findViewById(R.id.allowGlenpool)).setText(es ? "Permitir pedidos de Glenpool" : "Allow Glenpool offers");
-        ((CheckBox) findViewById(R.id.allowJenks)).setText(es ? "Permitir pedidos de Jenks" : "Allow Jenks offers");
-        ((CheckBox) findViewById(R.id.allowSamsClub)).setText(es ? "Permitir pedidos de Sam’s Club" : "Allow Sam’s Club offers");
+                ? "Solo las ubicaciones marcadas pueden pasar el filtro de ubicación. Las ubicaciones identificadas que no estén marcadas se rechazan. Sand Springs y Sapulpa están activadas de forma predeterminada."
+                : "Only checked locations can pass the location filter. Reliably identified locations that are not checked are rejected. Sand Springs and Sapulpa are enabled by default.");
+        ((CheckBox) findViewById(R.id.allowSandSprings)).setText(es ? "Aceptar pedidos de Sand Springs" : "Accept Sand Springs offers");
+        ((CheckBox) findViewById(R.id.allowSapulpa)).setText(es ? "Aceptar pedidos de Sapulpa" : "Accept Sapulpa offers");
+        ((CheckBox) findViewById(R.id.allowTulsa)).setText(es ? "Aceptar pedidos de Tulsa" : "Accept Tulsa offers");
+        ((CheckBox) findViewById(R.id.allowGlenpool)).setText(es ? "Aceptar pedidos de Glenpool" : "Accept Glenpool offers");
+        ((CheckBox) findViewById(R.id.allowJenks)).setText(es ? "Aceptar pedidos de Jenks" : "Accept Jenks offers");
+        ((CheckBox) findViewById(R.id.allowSamsClub)).setText(es ? "Aceptar pedidos de Sam’s Club" : "Accept Sam’s Club offers");
 
         ((CheckBox) findViewById(R.id.rejectNoShopping)).setText(es ? "Rechazar pedidos que no muestran Compras" : "Reject orders that do not show Shopping");
         ((CheckBox) findViewById(R.id.rejectMinPayEnabled)).setText(es ? "Rechazar pedidos por debajo de este monto mínimo" : "Reject orders below this minimum order dollar amount");
         ((TextView) findViewById(R.id.rejectMinPayLabel)).setText(es ? "Rechazar por debajo de $:  " : "Reject orders below $:  ");
         ((CheckBox) findViewById(R.id.rejectLowRate)).setText(es ? "Rechazar pedidos por debajo de este monto de dólares por milla" : "Reject orders below this dollars-per-mile amount");
         ((TextView) findViewById(R.id.rejectRateLabel)).setText(es ? "Rechazar por debajo de $ / milla:  " : "Reject below $ / mile:  ");
+        ((CheckBox) findViewById(R.id.rejectMaxMilesEnabled)).setText(es ? "Rechazar pedidos que superen este máximo de millas" : "Reject orders over this maximum number of miles");
+        ((TextView) findViewById(R.id.rejectMaxMilesLabel)).setText(es ? "Rechazar por encima de millas:  " : "Reject over miles:  ");
 
         ((TextView) findViewById(R.id.acceptHeading)).setText(es ? "REGLAS DE ACEPTACIÓN AUTOMÁTICA" : "AUTO-ACCEPT RULES");
         ((CheckBox) findViewById(R.id.autoAcceptEnabled)).setText(es ? "Activar aceptación automática" : "Enable Auto-Accept");
@@ -226,7 +238,9 @@ public class MainActivity extends Activity {
                 prefs.getBoolean(Prefs.ALLOW_TULSA, false),
                 prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false),
                 prefs.getBoolean(Prefs.ALLOW_JENKS, false),
-                prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false));
+                prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false),
+                prefs.getBoolean(Prefs.ALLOW_SAPULPA, true),
+                prefs.getBoolean(Prefs.ALLOW_SAND_SPRINGS, true));
     }
 
     private void bindNumber(EditText editText, String key, float min, float max) {
