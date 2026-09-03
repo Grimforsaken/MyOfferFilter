@@ -9,8 +9,14 @@ public final class SafetyAndLocationTest {
         shouldDetectCityFromOklahomaAddressLine();
         shouldNotGuessCityFromZoneText();
         shouldReturnUnknownForMultipleAddressCities();
-        shouldRejectSamsClubByDefault();
+        shouldAllowSandSpringsByDefault();
+        shouldAllowSapulpaByDefault();
+        shouldRejectBixbyWhenNotOnWhitelist();
+        shouldRejectTulsaWhenUnchecked();
+        shouldAllowTulsaWhenChecked();
+        shouldRejectSamsClubWhenUnchecked();
         shouldAllowSamsClubWhenChecked();
+        shouldIgnoreBareTulsaZoneLabel();
         System.out.println("Safety and location tests passed.");
     }
 
@@ -26,35 +32,35 @@ public final class SafetyAndLocationTest {
     private static void shouldProtectOfferWhileAcceptIsPending() {
         OfferDecisionGuard guard = new OfferDecisionGuard();
         long now = 2_000L;
-        guard.noteAcceptIntent("21.54:6.10:true", now);
-        require(guard.isRejectProtected("21.54:6.10:true", now),
+        guard.noteAcceptIntent("21.54:6.10:true:Sand Springs", now);
+        require(guard.isRejectProtected("21.54:6.10:true:Sand Springs", now),
                 "same offer must be protected as soon as an accept decision is known");
-        require(guard.isRejectProtected("21.54:6.10:true", now + 29_999L),
+        require(guard.isRejectProtected("21.54:6.10:true:Sand Springs", now + 29_999L),
                 "accept intent protection must remain active for 30 seconds");
-        require(!guard.isRejectProtected("18.74:9.20:true", now + 1_000L),
+        require(!guard.isRejectProtected("18.74:9.20:true:Sapulpa", now + 1_000L),
                 "a different offer must not inherit the accept protection");
     }
 
     private static void shouldProtectAcceptedOfferForSixtySeconds() {
         OfferDecisionGuard guard = new OfferDecisionGuard();
         long now = 5_000L;
-        guard.noteAccepted("21.54:6.10:true", now);
-        require(guard.isRejectProtected("21.54:6.10:true", now + 59_999L),
+        guard.noteAccepted("21.54:6.10:true:Sand Springs", now);
+        require(guard.isRejectProtected("21.54:6.10:true:Sand Springs", now + 59_999L),
                 "accepted offer must remain protected through its review window");
-        require(!guard.isRejectProtected("21.54:6.10:true", now + 60_000L),
+        require(!guard.isRejectProtected("21.54:6.10:true:Sand Springs", now + 60_000L),
                 "accepted-offer identity protection should expire after 60 seconds");
     }
 
     private static void shouldRequireStableRejectObservation() {
         OfferDecisionGuard guard = new OfferDecisionGuard();
-        String key = "22.54:13.90:true";
-        require(!guard.isRejectStable(key, "low rate", 10_000L),
+        String key = "22.54:13.90:true:Bixby";
+        require(!guard.isRejectStable(key, "location not checked", 10_000L),
                 "first reject observation must not click immediately");
-        require(!guard.isRejectStable(key, "low rate", 10_649L),
+        require(!guard.isRejectStable(key, "location not checked", 10_649L),
                 "reject must remain pending before 650 ms");
-        require(guard.isRejectStable(key, "low rate", 10_650L),
+        require(guard.isRejectStable(key, "location not checked", 10_650L),
                 "same reject decision should become actionable after 650 ms");
-        require(!guard.isRejectStable(key, "Tulsa", 10_700L),
+        require(!guard.isRejectStable(key, "low rate", 10_700L),
                 "a changed reject reason must restart safety verification");
     }
 
@@ -76,25 +82,57 @@ public final class SafetyAndLocationTest {
                 "multiple address cities should be Unknown rather than guessed");
     }
 
-    private static void shouldRejectSamsClubByDefault() {
-        CityPolicy.configure(false, false, false, false);
-        OfferEvaluator.Result r = OfferEvaluator.evaluate(
-                "$30.00\n8 miles\nSam's Club\nShopping\nAccept\nReject",
-                false, false, 1.25, false, 15.00,
-                true, true, 20, false, 1.25, false, 10,
-                false, false);
-        require(r.ready && r.shouldReject && !r.shouldAccept, "Sam's Club must reject by default");
+    private static void shouldAllowSandSpringsByDefault() {
+        CityPolicy.configure(false, false, false, false, true, true);
+        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate("Sand Springs, OK 74063\n$25.00\n8 miles");
+        require(d.identified && d.allowed && "Sand Springs".equals(d.location),
+                "Sand Springs should be checked by default");
+    }
+
+    private static void shouldAllowSapulpaByDefault() {
+        CityPolicy.configure(false, false, false, false, true, true);
+        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate("Sapulpa, OK 74066\n$25.00\n8 miles");
+        require(d.identified && d.allowed && "Sapulpa".equals(d.location),
+                "Sapulpa should be checked by default");
+    }
+
+    private static void shouldRejectBixbyWhenNotOnWhitelist() {
+        CityPolicy.configure(false, false, false, false, true, true);
+        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate("Bixby, OK 74008\n$25.00\n8 miles");
+        require(d.identified && !d.allowed && "Bixby".equals(d.location),
+                "reliably identified locations outside the whitelist must reject");
+    }
+
+    private static void shouldRejectTulsaWhenUnchecked() {
+        CityPolicy.configure(false, false, false, false, true, true);
+        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate("Tulsa, OK 74103\n$30.00\n8 miles");
+        require(d.identified && !d.allowed, "Tulsa should reject while unchecked");
+    }
+
+    private static void shouldAllowTulsaWhenChecked() {
+        CityPolicy.configure(true, false, false, false, true, true);
+        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate("Tulsa, OK 74103\n$30.00\n8 miles");
+        require(d.identified && d.allowed, "Tulsa should pass when checked");
+    }
+
+    private static void shouldRejectSamsClubWhenUnchecked() {
+        CityPolicy.configure(false, false, false, false, true, true);
+        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate("Sam's Club #6342\n$30.00\n8 miles");
+        require(d.identified && !d.allowed && "Sam's Club".equals(d.location),
+                "Sam's Club should reject while unchecked");
     }
 
     private static void shouldAllowSamsClubWhenChecked() {
-        CityPolicy.configure(false, false, false, true);
-        OfferEvaluator.Result r = OfferEvaluator.evaluate(
-                "$30.00\n8 miles\nSam's Club\nShopping\nAccept\nReject",
-                false, false, 1.25, false, 15.00,
-                false, false, 20, false, 1.25, false, 10,
-                false, false);
-        CityPolicy.configure(false, false, false, false);
-        require(r.ready && !r.shouldReject, "Sam's Club should pass location filter when allowed");
+        CityPolicy.configure(false, false, false, true, true, true);
+        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate("Sam's Club #6342\n$30.00\n8 miles");
+        require(d.identified && d.allowed, "Sam's Club should pass when checked");
+    }
+
+    private static void shouldIgnoreBareTulsaZoneLabel() {
+        CityPolicy.configure(false, false, false, false, true, true);
+        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate("Tulsa\nSpark Zone\n$30.00\n8 miles");
+        require(!d.identified,
+                "bare Tulsa map/zone text must not be used as the order location");
     }
 
     private static void require(boolean condition, String message) {
