@@ -15,11 +15,15 @@ final class Prefs {
     static final String THRESHOLD = "threshold";
     static final String REJECT_MIN_PAY_ENABLED = "reject_min_pay_enabled";
     static final String REJECT_MIN_PAY = "reject_min_pay";
+    static final String REJECT_MAX_MILES_ENABLED = "reject_max_miles_enabled";
+    static final String REJECT_MAX_MILES = "reject_max_miles";
 
     static final String ALLOW_TULSA = "allow_tulsa";
     static final String ALLOW_GLENPOOL = "allow_glenpool";
     static final String ALLOW_JENKS = "allow_jenks";
     static final String ALLOW_SAMS_CLUB = "allow_sams_club";
+    static final String ALLOW_SAPULPA = "allow_sapulpa";
+    static final String ALLOW_SAND_SPRINGS = "allow_sand_springs";
 
     static final String AUTO_ACCEPT_ENABLED = "auto_accept_enabled";
     static final String ACCEPT_MIN_PAY_ENABLED = "accept_min_pay_enabled";
