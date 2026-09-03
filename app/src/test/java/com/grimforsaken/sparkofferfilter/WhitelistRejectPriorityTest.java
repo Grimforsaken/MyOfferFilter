@@ -6,7 +6,7 @@ public final class WhitelistRejectPriorityTest {
         shouldRejectLowPayInSandSprings();
         shouldRejectTooManyMilesInSapulpa();
         shouldRejectLowRateInSandSprings();
-        shouldKeepEstimatedTotalSafetyException();
+        shouldApplyRejectRulesOnEstimatedTotalOffers();
         System.out.println("Whitelist reject-priority tests passed.");
     }
 
@@ -67,7 +67,7 @@ public final class WhitelistRejectPriorityTest {
                 "Sand Springs must still reject when the dollars-per-mile rule fails");
     }
 
-    private static void shouldKeepEstimatedTotalSafetyException() {
+    private static void shouldApplyRejectRulesOnEstimatedTotalOffers() {
         OfferEvaluator.Result r = OfferEvaluator.evaluate(
                 "Sand Springs, OK 74063\nEstimated total\n$10.00\n20 miles\nShopping\nReject\nAccept",
                 false, true, 1.25,
@@ -78,8 +78,8 @@ public final class WhitelistRejectPriorityTest {
                 false, 1.25,
                 false, 20.0,
                 false, false);
-        require(r.ready && !r.shouldReject,
-                "Estimated total screen must remain protected from auto-reject");
+        require(r.ready && r.shouldReject,
+                "normal offer screens showing Estimated total must still obey reject rules");
     }
 
     private static void require(boolean condition, String message) {
