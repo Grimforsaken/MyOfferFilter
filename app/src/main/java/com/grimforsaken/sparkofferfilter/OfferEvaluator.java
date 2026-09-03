@@ -136,7 +136,16 @@ public final class OfferEvaluator {
     }
 
     static String normalize(String input) {
-        return input.toUpperCase(Locale.US).replace('\u00A0', ' ').replaceAll("\\s+", " ").trim();
+        // "Estimated total" is ordinary offer content now. The old build used this
+        // exact normalized phrase as a blanket reject exemption in the service.
+        // Keep it normalized as one token so that legacy exemption can no longer
+        // suppress the user's configured reject rules. Accepted offers are instead
+        // protected by the post-accept and same-offer safety guards.
+        return input.toUpperCase(Locale.US)
+                .replace('\u00A0', ' ')
+                .replaceAll("\\s+", " ")
+                .trim()
+                .replace("ESTIMATED TOTAL", "ESTIMATED_TOTAL");
     }
 
     static Double parseBestPay(String text) {
