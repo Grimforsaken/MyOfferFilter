@@ -65,6 +65,12 @@ public class MainActivity extends Activity {
         CheckBox allowSamsClub = findViewById(R.id.allowSamsClub);
 
         CheckBox autoAcceptEnabled = findViewById(R.id.autoAcceptEnabled);
+        CheckBox acceptAllowSandSprings = findViewById(R.id.acceptAllowSandSprings);
+        CheckBox acceptAllowSapulpa = findViewById(R.id.acceptAllowSapulpa);
+        CheckBox acceptAllowTulsa = findViewById(R.id.acceptAllowTulsa);
+        CheckBox acceptAllowGlenpool = findViewById(R.id.acceptAllowGlenpool);
+        CheckBox acceptAllowJenks = findViewById(R.id.acceptAllowJenks);
+        CheckBox acceptAllowSamsClub = findViewById(R.id.acceptAllowSamsClub);
         CheckBox acceptMinPayEnabled = findViewById(R.id.acceptMinPayEnabled);
         EditText acceptMinPay = findViewById(R.id.acceptMinPay);
         CheckBox acceptMinRateEnabled = findViewById(R.id.acceptMinRateEnabled);
@@ -99,6 +105,12 @@ public class MainActivity extends Activity {
         allowSamsClub.setChecked(prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false));
 
         autoAcceptEnabled.setChecked(prefs.getBoolean(Prefs.AUTO_ACCEPT_ENABLED, false));
+        acceptAllowSandSprings.setChecked(prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAND_SPRINGS, true));
+        acceptAllowSapulpa.setChecked(prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAPULPA, true));
+        acceptAllowTulsa.setChecked(prefs.getBoolean(Prefs.ACCEPT_LOCATION_TULSA, false));
+        acceptAllowGlenpool.setChecked(prefs.getBoolean(Prefs.ACCEPT_LOCATION_GLENPOOL, false));
+        acceptAllowJenks.setChecked(prefs.getBoolean(Prefs.ACCEPT_LOCATION_JENKS, false));
+        acceptAllowSamsClub.setChecked(prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAMS_CLUB, false));
         acceptMinPayEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_MIN_PAY_ENABLED, false));
         acceptMinPay.setText(format(prefs.getFloat(Prefs.ACCEPT_MIN_PAY, 20.00f), 2));
         acceptMinRateEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_MIN_RATE_ENABLED, false));
@@ -108,7 +120,7 @@ public class MainActivity extends Activity {
         acceptShoppingEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_SHOPPING_ENABLED, false));
         acceptNoShoppingEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_NO_SHOPPING_ENABLED, false));
 
-        refreshLocationPolicy();
+        refreshLocationPolicies();
 
         bindCheck(masterEnabled, Prefs.MASTER_ENABLED);
         bindCheck(dryRun, Prefs.DRY_RUN);
@@ -129,6 +141,12 @@ public class MainActivity extends Activity {
         bindCheck(allowSamsClub, Prefs.ALLOW_SAMS_CLUB);
 
         bindCheck(autoAcceptEnabled, Prefs.AUTO_ACCEPT_ENABLED);
+        bindCheck(acceptAllowSandSprings, Prefs.ACCEPT_LOCATION_SAND_SPRINGS);
+        bindCheck(acceptAllowSapulpa, Prefs.ACCEPT_LOCATION_SAPULPA);
+        bindCheck(acceptAllowTulsa, Prefs.ACCEPT_LOCATION_TULSA);
+        bindCheck(acceptAllowGlenpool, Prefs.ACCEPT_LOCATION_GLENPOOL);
+        bindCheck(acceptAllowJenks, Prefs.ACCEPT_LOCATION_JENKS);
+        bindCheck(acceptAllowSamsClub, Prefs.ACCEPT_LOCATION_SAMS_CLUB);
         bindCheck(acceptMinPayEnabled, Prefs.ACCEPT_MIN_PAY_ENABLED);
         bindNumber(acceptMinPay, Prefs.ACCEPT_MIN_PAY, 0.01f, 10000.0f);
         bindCheck(acceptMinRateEnabled, Prefs.ACCEPT_MIN_RATE_ENABLED);
@@ -178,8 +196,8 @@ public class MainActivity extends Activity {
 
         ((TextView) findViewById(R.id.rejectHeading)).setText(es ? "REGLAS DE RECHAZO AUTOMÁTICO" : "AUTO-REJECT RULES");
         ((TextView) findViewById(R.id.rejectPriorityText)).setText(es
-                ? "Las ubicaciones no seleccionadas y las demás reglas de rechazo se aplican antes de la aceptación automática. La pantalla «Estimated total» nunca se rechaza automáticamente."
-                : "Unchecked locations and other reject rules are applied before Auto-Accept. The “Estimated total” screen is never auto-rejected.");
+                ? "Las ubicaciones no seleccionadas y las demás reglas de rechazo se aplican antes de la aceptación automática. Si la ubicación es desconocida, Safe Driver espera 2 segundos y vuelve a comprobar; si sigue siendo desconocida, deja el pedido para revisión manual. La pantalla «Estimated total» nunca se rechaza automáticamente."
+                : "Unchecked locations and other reject rules are applied before Auto-Accept. If the location is unknown, Safe Driver waits 2 seconds and checks again; if it is still unknown, the order is left for manual review. The “Estimated total” screen is never auto-rejected.");
 
         ((TextView) findViewById(R.id.locationHeading)).setText(es ? "UBICACIONES ACEPTADAS" : "ACCEPTED LOCATIONS");
         ((TextView) findViewById(R.id.locationHelp)).setText(es
@@ -202,6 +220,16 @@ public class MainActivity extends Activity {
 
         ((TextView) findViewById(R.id.acceptHeading)).setText(es ? "REGLAS DE ACEPTACIÓN AUTOMÁTICA" : "AUTO-ACCEPT RULES");
         ((CheckBox) findViewById(R.id.autoAcceptEnabled)).setText(es ? "Activar aceptación automática" : "Enable Auto-Accept");
+        ((TextView) findViewById(R.id.acceptLocationHeading)).setText(es ? "UBICACIONES DE ACEPTACIÓN AUTOMÁTICA" : "AUTO-ACCEPT LOCATIONS");
+        ((TextView) findViewById(R.id.acceptLocationHelp)).setText(es
+                ? "La aceptación automática solo puede pulsar Aceptar para las ubicaciones marcadas aquí. Sand Springs y Sapulpa están activadas de forma predeterminada."
+                : "Auto-Accept can only press Accept for locations checked here. Sand Springs and Sapulpa are enabled by default.");
+        ((CheckBox) findViewById(R.id.acceptAllowSandSprings)).setText(es ? "Aceptar automáticamente Sand Springs" : "Auto-Accept Sand Springs");
+        ((CheckBox) findViewById(R.id.acceptAllowSapulpa)).setText(es ? "Aceptar automáticamente Sapulpa" : "Auto-Accept Sapulpa");
+        ((CheckBox) findViewById(R.id.acceptAllowTulsa)).setText(es ? "Aceptar automáticamente Tulsa" : "Auto-Accept Tulsa");
+        ((CheckBox) findViewById(R.id.acceptAllowGlenpool)).setText(es ? "Aceptar automáticamente Glenpool" : "Auto-Accept Glenpool");
+        ((CheckBox) findViewById(R.id.acceptAllowJenks)).setText(es ? "Aceptar automáticamente Jenks" : "Auto-Accept Jenks");
+        ((CheckBox) findViewById(R.id.acceptAllowSamsClub)).setText(es ? "Aceptar automáticamente Sam’s Club" : "Auto-Accept Sam’s Club");
         ((TextView) findViewById(R.id.acceptHelp)).setText(es
                 ? "Cada criterio activado debe cumplirse. Para Compras: una sola casilla limita el tipo de pedido, ambas permiten cualquiera y ninguna ignora el estado de Compras."
                 : "Every enabled Auto-Accept criterion must pass. Shopping choices work together: one checked limits the order type, both checked allow either type, neither checked ignores Shopping status.");
@@ -229,11 +257,11 @@ public class MainActivity extends Activity {
     private void bindCheck(CheckBox checkBox, String key) {
         checkBox.setOnCheckedChangeListener((button, checked) -> {
             prefs.edit().putBoolean(key, checked).apply();
-            refreshLocationPolicy();
+            refreshLocationPolicies();
         });
     }
 
-    private void refreshLocationPolicy() {
+    private void refreshLocationPolicies() {
         CityPolicy.configure(
                 prefs.getBoolean(Prefs.ALLOW_TULSA, false),
                 prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false),
@@ -241,6 +269,13 @@ public class MainActivity extends Activity {
                 prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false),
                 prefs.getBoolean(Prefs.ALLOW_SAPULPA, true),
                 prefs.getBoolean(Prefs.ALLOW_SAND_SPRINGS, true));
+        AutoAcceptCityPolicy.configure(
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_TULSA, false),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_GLENPOOL, false),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_JENKS, false),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAMS_CLUB, false),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAPULPA, true),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAND_SPRINGS, true));
     }
 
     private void bindNumber(EditText editText, String key, float min, float max) {
@@ -263,7 +298,7 @@ public class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         if (prefs != null) {
-            refreshLocationPolicy();
+            refreshLocationPolicies();
             if (findViewById(R.id.appTitle) != null) applyLanguage();
         }
         uiHandler.removeCallbacks(refreshRunnable);
