@@ -196,13 +196,13 @@ public class MainActivity extends Activity {
 
         ((TextView) findViewById(R.id.rejectHeading)).setText(es ? "REGLAS DE RECHAZO AUTOMÁTICO" : "AUTO-REJECT RULES");
         ((TextView) findViewById(R.id.rejectPriorityText)).setText(es
-                ? "Las ubicaciones no seleccionadas y las demás reglas de rechazo se aplican antes de la aceptación automática. Si la ubicación es desconocida, Safe Driver espera 2 segundos y vuelve a comprobar; si sigue siendo desconocida, deja el pedido para revisión manual. La pantalla «Estimated total» nunca se rechaza automáticamente."
-                : "Unchecked locations and other reject rules are applied before Auto-Accept. If the location is unknown, Safe Driver waits 2 seconds and checks again; if it is still unknown, the order is left for manual review. The “Estimated total” screen is never auto-rejected.");
+                ? "Las reglas de monto mínimo, máximo de millas, dólares por milla y Compras siguen aplicándose incluso cuando Sand Springs o Sapulpa están permitidas. Si la ubicación es desconocida, Safe Driver espera 2 segundos y vuelve a comprobar; si sigue siendo desconocida, deja el pedido para revisión manual. Los pedidos ya aceptados permanecen protegidos por los bloqueos de seguridad."
+                : "Minimum-dollar, maximum-mile, dollars-per-mile, and Shopping reject rules still apply even when Sand Springs or Sapulpa is allowed. If the location is unknown, Safe Driver waits 2 seconds and checks again; if it is still unknown, the order is left for manual review. Already accepted offers remain protected by the safety locks.");
 
         ((TextView) findViewById(R.id.locationHeading)).setText(es ? "UBICACIONES ACEPTADAS" : "ACCEPTED LOCATIONS");
         ((TextView) findViewById(R.id.locationHelp)).setText(es
-                ? "Solo las ubicaciones marcadas pueden pasar el filtro de ubicación. Las ubicaciones identificadas que no estén marcadas se rechazan. Sand Springs y Sapulpa están activadas de forma predeterminada."
-                : "Only checked locations can pass the location filter. Reliably identified locations that are not checked are rejected. Sand Springs and Sapulpa are enabled by default.");
+                ? "Esta lista solo controla el filtro de ubicación. Una ubicación marcada NO omite las reglas de monto mínimo, máximo de millas, dólares por milla ni Compras. Sand Springs y Sapulpa están marcadas de forma predeterminada."
+                : "This list only controls the location filter. A checked location does NOT bypass minimum-dollar, maximum-mile, dollars-per-mile, or Shopping reject rules. Sand Springs and Sapulpa are checked by default.");
         ((CheckBox) findViewById(R.id.allowSandSprings)).setText(es ? "Aceptar pedidos de Sand Springs" : "Accept Sand Springs offers");
         ((CheckBox) findViewById(R.id.allowSapulpa)).setText(es ? "Aceptar pedidos de Sapulpa" : "Accept Sapulpa offers");
         ((CheckBox) findViewById(R.id.allowTulsa)).setText(es ? "Aceptar pedidos de Tulsa" : "Accept Tulsa offers");
@@ -222,8 +222,8 @@ public class MainActivity extends Activity {
         ((CheckBox) findViewById(R.id.autoAcceptEnabled)).setText(es ? "Activar aceptación automática" : "Enable Auto-Accept");
         ((TextView) findViewById(R.id.acceptLocationHeading)).setText(es ? "UBICACIONES DE ACEPTACIÓN AUTOMÁTICA" : "AUTO-ACCEPT LOCATIONS");
         ((TextView) findViewById(R.id.acceptLocationHelp)).setText(es
-                ? "La aceptación automática solo puede pulsar Aceptar para las ubicaciones marcadas aquí. Sand Springs y Sapulpa están activadas de forma predeterminada."
-                : "Auto-Accept can only press Accept for locations checked here. Sand Springs and Sapulpa are enabled by default.");
+                ? "Esta es una lista separada. Safe Driver solo puede pulsar Aceptar automáticamente cuando la ubicación está marcada aquí Y se cumplen todas las demás reglas de aceptación automática. Sand Springs y Sapulpa están marcadas de forma predeterminada."
+                : "This is a separate checklist. Safe Driver can only press Accept automatically when the location is checked here AND every other enabled Auto-Accept rule passes. Sand Springs and Sapulpa are checked by default.");
         ((CheckBox) findViewById(R.id.acceptAllowSandSprings)).setText(es ? "Aceptar automáticamente Sand Springs" : "Auto-Accept Sand Springs");
         ((CheckBox) findViewById(R.id.acceptAllowSapulpa)).setText(es ? "Aceptar automáticamente Sapulpa" : "Auto-Accept Sapulpa");
         ((CheckBox) findViewById(R.id.acceptAllowTulsa)).setText(es ? "Aceptar automáticamente Tulsa" : "Auto-Accept Tulsa");
