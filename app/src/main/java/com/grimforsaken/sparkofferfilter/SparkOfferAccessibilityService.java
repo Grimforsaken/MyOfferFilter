@@ -33,6 +33,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ActionSafetyGuard safetyGuard = new ActionSafetyGuard();
     private final OfferDecisionGuard decisionGuard = new OfferDecisionGuard();
+    private final UnknownLocationGuard unknownLocationGuard = new UnknownLocationGuard();
     private SharedPreferences prefs;
     private ToneGenerator toneGenerator;
     private String latestEventText = "";
@@ -43,12 +44,17 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     private long rejectConfirmationDeadline = 0L;
     private String pendingRejectSummary = "";
     private String pendingRejectOfferKey = "";
+    private String scheduledUnknownLocationKey = "";
 
     private final Runnable retry40 = () -> evaluateCurrentOffer(null, "retry +40ms");
     private final Runnable retry120 = () -> evaluateCurrentOffer(null, "retry +120ms");
     private final Runnable retry300 = () -> evaluateCurrentOffer(null, "retry +300ms");
     private final Runnable retry650 = () -> evaluateCurrentOffer(null, "retry +650ms");
     private final Runnable retry1400 = () -> evaluateCurrentOffer(null, "retry +1400ms");
+    private final Runnable unknownLocationRetry = () -> {
+        scheduledUnknownLocationKey = "";
+        evaluateCurrentOffer(null, "unknown location +2s recheck");
+    };
 
     @Override public void onServiceConnected() {
         super.onServiceConnected();
@@ -56,10 +62,12 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         clearPendingRejectConfirmation();
         safetyGuard.clear();
         decisionGuard.clear();
-        refreshLocationPolicy();
+        unknownLocationGuard.clear();
+        scheduledUnknownLocationKey = "";
+        refreshLocationPolicies();
         try { toneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 85); }
         catch (RuntimeException ignored) { toneGenerator = null; }
-        writeDecision("Service connected. Accepted Locations whitelist is active. Accepted offers remain protected from later rejection.");
+        writeDecision("Service connected. Accepted Locations and Auto-Accept Locations whitelists are active. Unknown locations get one 2-second recheck before manual review.");
         writeDiagnostic(Prefs.LAST_SCAN_STATUS, "Instant Scan ready; waiting for a Spark event or preloaded offer tree.");
     }
 
@@ -93,6 +101,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     @Override public void onInterrupt() {
         handler.removeCallbacksAndMessages(null);
         clearPendingRejectConfirmation();
+        scheduledUnknownLocationKey = "";
     }
 
     @Override public void onDestroy() {
@@ -100,6 +109,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         clearPendingRejectConfirmation();
         safetyGuard.clear();
         decisionGuard.clear();
+        unknownLocationGuard.clear();
+        scheduledUnknownLocationKey = "";
         if (toneGenerator != null) {
             toneGenerator.release();
             toneGenerator = null;
@@ -109,7 +120,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
 
     private void evaluateCurrentOffer(AccessibilityNodeInfo eventSource, String scanSource) {
         if (prefs == null || !prefs.getBoolean(Prefs.MASTER_ENABLED, false)) return;
-        refreshLocationPolicy();
+        refreshLocationPolicies();
         long now = System.currentTimeMillis();
 
         List<AccessibilityNodeInfo> candidates = collectSparkCandidateRoots(eventSource);
@@ -117,6 +128,14 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             writeDiagnostic(Prefs.LAST_SCAN_STATUS,
                     timestamp() + " — Spark event received, but no Spark accessibility tree is attached yet (" + scanSource + ").");
             return;
+        }
+
+        boolean anyIdentifiedLocationInScan = false;
+        for (AccessibilityNodeInfo root : candidates) {
+            if (OfferLocationPolicy.evaluate(collectAllText(root)).identified) {
+                anyIdentifiedLocationInScan = true;
+                break;
+            }
         }
 
         if (safetyGuard.isRejectLocked(now) && awaitingRejectConfirmation) {
@@ -152,6 +171,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                         recordAction(key, now);
                         clearFreshEventPayload();
                         decisionGuard.clearRejectCandidate();
+                        clearUnknownLocationState();
                         playDecisionChime(false);
                         OfferHistory.addRejected(prefs, timestamp() + "\n" + summary);
                         writeDecision("REJECTED and confirmed. " + summary);
@@ -163,6 +183,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         }
 
         boolean sawReadableText = false;
+        boolean unknownTimedOut = false;
+        String unknownTimedOutKey = "";
+        String unknownTimedOutCapture = "";
         String bestStatus = "";
         String bestCapture = "";
 
@@ -182,29 +205,46 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     + ", Reject/Decline=" + (rejectNode != null ? controlVisibility(rejectNode) : "missing")
                     + ". Controls: " + controls;
 
+            String baseOfferKey = unknownLocationOfferKey(currentText);
             OfferLocationPolicy.Decision location = OfferLocationPolicy.evaluate(treeText);
             if (!location.identified) {
-                bestStatus = timestamp() + " — " + scanSource + ": " + location.reason + " " + controlStatus;
+                if (anyIdentifiedLocationInScan) continue;
+                now = System.currentTimeMillis();
+                if (unknownLocationGuard.shouldLeaveForManualReview(baseOfferKey, now)) {
+                    unknownTimedOut = true;
+                    unknownTimedOutKey = baseOfferKey;
+                    unknownTimedOutCapture = currentText;
+                    bestStatus = timestamp() + " — Location is still unknown after the 2-second recheck; leaving this offer for manual review.";
+                } else {
+                    scheduleUnknownLocationRetry(baseOfferKey, now);
+                    long remaining = unknownLocationGuard.remainingMs(baseOfferKey, now);
+                    bestStatus = timestamp() + " — Location is unknown; Safe Driver will re-evaluate in "
+                            + String.format(Locale.US, "%.1f", remaining / 1000.0) + " seconds. " + controlStatus;
+                }
                 continue;
             }
+
+            if (unknownLocationGuard.isManualReviewLocked(baseOfferKey, now)) {
+                unknownTimedOut = true;
+                unknownTimedOutKey = baseOfferKey;
+                unknownTimedOutCapture = currentText;
+                bestStatus = timestamp() + " — This offer was left for manual review because its location remained unknown after 2 seconds.";
+                continue;
+            }
+            clearUnknownLocationWait(baseOfferKey);
 
             OfferEvaluator.Result result = evaluateRules(currentText);
             boolean estimatedTotalScreen = OfferEvaluator.normalize(currentText).contains("ESTIMATED TOTAL");
 
-            if (!location.allowed) {
+            if (!location.allowed && !estimatedTotalScreen) {
                 Double rate = result.pay != null && result.miles != null && result.miles > 0.0
                         ? result.pay / result.miles : null;
-                if (estimatedTotalScreen) {
-                    result = OfferEvaluator.Result.ready(false, false, false, result.hasShopping,
-                            result.pay, result.miles, rate,
-                            "Estimated total screen: automatic rejection is disabled. "
-                                    + location.location + " is not checked in Accepted Locations.");
-                } else {
-                    result = OfferEvaluator.Result.ready(true, false, false, result.hasShopping,
-                            result.pay, result.miles, rate,
-                            location.location + " is not checked in Accepted Locations");
-                }
-            } else if (!result.ready) {
+                result = OfferEvaluator.Result.ready(true, false, false, result.hasShopping,
+                        result.pay, result.miles, rate,
+                        location.location + " is not checked in Accepted Locations");
+            }
+
+            if (!result.ready) {
                 bestStatus = timestamp() + " — " + scanSource + ": " + result.reason
                         + " Location=" + location.location + ". " + controlStatus;
                 continue;
@@ -274,8 +314,12 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             }
 
             if (result.shouldAccept) {
-                if (!location.allowed) {
-                    writeDecision("LEFT FOR MANUAL REVIEW. Location is not checked in Accepted Locations. " + details);
+                if (!AutoAcceptCityPolicy.isAllowed(location.location)) {
+                    writeDecision("LEFT FOR MANUAL REVIEW. " + location.location
+                            + " is not checked in Auto-Accept Locations. " + details);
+                    writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                            timestamp() + " — Auto-Accept location gate blocked automatic acceptance; no reject action was taken.");
+                    writeDiagnostic(Prefs.LAST_CAPTURE, truncate(currentText, 3500));
                     return;
                 }
                 decisionGuard.noteAcceptIntent(offerKey, now);
@@ -298,6 +342,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     clearFreshEventPayload();
                     decisionGuard.noteAccepted(offerKey, now);
                     safetyGuard.onAccepted(now);
+                    clearUnknownLocationState();
                     playDecisionChime(true);
                     String city = OfferCityDetector.detect(treeText);
                     if ("Unknown".equals(city) && !"Sam's Club".equals(location.location)) city = location.location;
@@ -319,6 +364,16 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             return;
         }
 
+        if (unknownTimedOut) {
+            handler.removeCallbacks(unknownLocationRetry);
+            if (unknownTimedOutKey.equals(scheduledUnknownLocationKey)) scheduledUnknownLocationKey = "";
+            writeDecision("LEFT FOR MANUAL REVIEW. Location remained unknown after the 2-second recheck. No automatic Accept or Reject action will be taken for this offer.");
+            writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                    timestamp() + " — UNKNOWN LOCATION: 2-second recheck completed; manual review required.");
+            writeDiagnostic(Prefs.LAST_CAPTURE, truncate(unknownTimedOutCapture, 3500));
+            return;
+        }
+
         if (!bestCapture.isEmpty()) {
             writeDiagnostic(Prefs.LAST_CAPTURE, truncate(mergeWithFreshEventPayload(bestCapture), 3500));
         }
@@ -330,13 +385,47 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         }
     }
 
+    private void scheduleUnknownLocationRetry(String offerKey, long now) {
+        if (offerKey.equals(scheduledUnknownLocationKey)) return;
+        handler.removeCallbacks(unknownLocationRetry);
+        scheduledUnknownLocationKey = offerKey;
+        long delay = Math.max(1L, unknownLocationGuard.remainingMs(offerKey, now));
+        handler.postDelayed(unknownLocationRetry, delay);
+    }
+
+    private void clearUnknownLocationWait(String offerKey) {
+        unknownLocationGuard.onLocationIdentified(offerKey);
+        if (offerKey.equals(scheduledUnknownLocationKey)) {
+            handler.removeCallbacks(unknownLocationRetry);
+            scheduledUnknownLocationKey = "";
+        }
+    }
+
+    private void clearUnknownLocationState() {
+        handler.removeCallbacks(unknownLocationRetry);
+        scheduledUnknownLocationKey = "";
+        unknownLocationGuard.clear();
+    }
+
+    private String unknownLocationOfferKey(String currentText) {
+        Double pay = OfferEvaluator.parseBestPay(currentText == null ? "" : currentText);
+        Double miles = OfferEvaluator.parseMiles(currentText == null ? "" : currentText);
+        String p = pay == null ? "?" : String.format(Locale.US, "%.2f", pay);
+        String m = miles == null ? "?" : String.format(Locale.US, "%.2f", miles);
+        String normalized = OfferEvaluator.normalize(currentText == null ? "" : currentText);
+        boolean shopping = normalized.contains("SHOPPING")
+                || normalized.contains("SHOP & DELIVER")
+                || normalized.contains("SHOP AND DELIVER");
+        return p + ":" + m + ":" + shopping;
+    }
+
     private String lockoutMessage(long now) {
         long ms = safetyGuard.remainingRejectLockoutMs(now);
         return timestamp() + " — POST-ACCEPT SAFETY: all rejection actions blocked for "
                 + String.format(Locale.US, "%.1f", ms / 1000.0) + " more seconds.";
     }
 
-    private void refreshLocationPolicy() {
+    private void refreshLocationPolicies() {
         CityPolicy.configure(
                 prefs.getBoolean(Prefs.ALLOW_TULSA, false),
                 prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false),
@@ -344,6 +433,13 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false),
                 prefs.getBoolean(Prefs.ALLOW_SAPULPA, true),
                 prefs.getBoolean(Prefs.ALLOW_SAND_SPRINGS, true));
+        AutoAcceptCityPolicy.configure(
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_TULSA, false),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_GLENPOOL, false),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_JENKS, false),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAMS_CLUB, false),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAPULPA, true),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAND_SPRINGS, true));
     }
 
     private OfferEvaluator.Result evaluateRules(String currentText) {
