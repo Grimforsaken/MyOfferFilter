@@ -45,14 +45,16 @@
         <CheckBox android:id="@+id/decisionChimes" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Play separate Accept / Reject chimes" android:checked="true" />
 
         <TextView android:id="@+id/rejectHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="AUTO-REJECT RULES" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
-        <TextView android:id="@+id/rejectPriorityText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Reject rules take priority over Auto-Accept, except that all rejection actions are locked for 10 seconds after a successful Auto-Accept." android:textSize="16sp" />
+        <TextView android:id="@+id/rejectPriorityText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Unchecked locations and other reject rules are applied before Auto-Accept. The Estimated total screen is never auto-rejected." android:textSize="16sp" />
 
-        <TextView android:id="@+id/locationHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="LOCATION REJECTION EXCEPTIONS" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
-        <TextView android:id="@+id/locationHelp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Tulsa, Glenpool, Jenks, and Sam's Club are rejected by default. Check a location below to allow it." android:textSize="14sp" android:textColor="@color/warning" />
-        <CheckBox android:id="@+id/allowTulsa" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Allow Tulsa offers" />
-        <CheckBox android:id="@+id/allowGlenpool" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Allow Glenpool offers" />
-        <CheckBox android:id="@+id/allowJenks" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Allow Jenks offers" />
-        <CheckBox android:id="@+id/allowSamsClub" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Allow Sam's Club offers" />
+        <TextView android:id="@+id/locationHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="ACCEPTED LOCATIONS" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
+        <TextView android:id="@+id/locationHelp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Only checked locations can pass the location filter. Reliably identified locations that are not checked are rejected. Sand Springs and Sapulpa are enabled by default." android:textSize="14sp" android:textColor="@color/warning" />
+        <CheckBox android:id="@+id/allowSandSprings" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept Sand Springs offers" android:checked="true" />
+        <CheckBox android:id="@+id/allowSapulpa" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept Sapulpa offers" android:checked="true" />
+        <CheckBox android:id="@+id/allowTulsa" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept Tulsa offers" />
+        <CheckBox android:id="@+id/allowGlenpool" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept Glenpool offers" />
+        <CheckBox android:id="@+id/allowJenks" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept Jenks offers" />
+        <CheckBox android:id="@+id/allowSamsClub" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept Sam's Club offers" />
 
         <CheckBox android:id="@+id/rejectNoShopping" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Reject orders that do not show Shopping" />
         <CheckBox android:id="@+id/rejectMinPayEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders below this minimum order dollar amount" android:checked="true" />
@@ -64,6 +66,11 @@
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:id="@+id/rejectRateLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Reject below $ / mile:  " />
             <EditText android:id="@+id/rejectThreshold" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="1.25" android:selectAllOnFocus="true" />
+        </LinearLayout>
+        <CheckBox android:id="@+id/rejectMaxMilesEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders over this maximum number of miles" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:id="@+id/rejectMaxMilesLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Reject over miles:  " />
+            <EditText android:id="@+id/rejectMaxMiles" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="20.0" android:selectAllOnFocus="true" />
         </LinearLayout>
 
         <TextView android:id="@+id/acceptHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="AUTO-ACCEPT RULES" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
