@@ -1,7 +1,6 @@
 package com.grimforsaken.sparkofferfilter;
 
 import java.util.LinkedHashSet;
-import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -9,6 +8,7 @@ import java.util.regex.Pattern;
 final class OfferLocationPolicy {
     private static final Pattern CITY_STATE_PATTERN = Pattern.compile(
             "(?im)^\\s*([A-Za-z][A-Za-z .'-]{1,40}?)\\s*,?\\s+(?:OK|Oklahoma)(?:\\s+\\d{5}(?:-\\d{4})?)?\\s*$");
+    private static final Pattern SAMS_CLUB_PATTERN = Pattern.compile("(?i)\\bSAM(?:'|’)?S\\s+CLUB\\b");
 
     private OfferLocationPolicy() {}
 
@@ -30,38 +30,14 @@ final class OfferLocationPolicy {
             return Decision.ambiguous("Multiple address cities are visible");
         }
 
-        Set<String> namedMatches = new LinkedHashSet<>();
-        String[] lines = currentTreeText.split("\\R");
-        for (String line : lines) {
-            String normalized = normalize(line);
-            if (normalized.equals("TULSA")) namedMatches.add("Tulsa");
-            else if (normalized.equals("GLENPOOL")) namedMatches.add("Glenpool");
-            else if (normalized.equals("JENKS")) namedMatches.add("Jenks");
-            else if (normalized.equals("SAPULPA")) namedMatches.add("Sapulpa");
-            else if (normalized.equals("SAND SPRINGS")) namedMatches.add("Sand Springs");
-            else if (normalized.equals("SAM'S CLUB") || normalized.equals("SAMS CLUB")
-                    || normalized.startsWith("SAM'S CLUB ") || normalized.startsWith("SAMS CLUB ")) {
-                namedMatches.add("Sam's Club");
-            }
+        // Sam's Club is a store/location type rather than a city. Its store name is
+        // reliable enough to apply the user's explicit Sam's Club whitelist option.
+        if (SAMS_CLUB_PATTERN.matcher(currentTreeText).find()) {
+            return Decision.identified("Sam's Club", CityPolicy.isAllowed("Sam's Club"));
         }
 
-        if (namedMatches.size() == 1) {
-            String location = namedMatches.iterator().next();
-            return Decision.identified(location, CityPolicy.isAllowed(location));
-        }
-        if (namedMatches.size() > 1) {
-            return Decision.ambiguous("Multiple possible locations are visible");
-        }
-
+        // Do not use bare map labels or zone headers such as "Tulsa" as the order city.
         return Decision.unknown();
-    }
-
-    private static String normalize(String text) {
-        if (text == null) return "";
-        return text.toUpperCase(Locale.US)
-                .replace('’', '\'')
-                .replaceAll("\\s+", " ")
-                .trim();
     }
 
     static final class Decision {
