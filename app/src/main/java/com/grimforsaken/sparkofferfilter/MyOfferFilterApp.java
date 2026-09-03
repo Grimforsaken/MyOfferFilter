@@ -22,5 +22,13 @@ public class MyOfferFilterApp extends Application {
                 prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false),
                 prefs.getBoolean(Prefs.ALLOW_SAPULPA, true),
                 prefs.getBoolean(Prefs.ALLOW_SAND_SPRINGS, true));
+
+        AutoAcceptCityPolicy.configure(
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_TULSA, false),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_GLENPOOL, false),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_JENKS, false),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAMS_CLUB, false),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAPULPA, true),
+                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAND_SPRINGS, true));
     }
 }
