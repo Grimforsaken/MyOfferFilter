@@ -46,6 +46,7 @@ public final class OfferEvaluator {
         Double miles = parseMiles(text);
         boolean hasAllowedCity = normalized.contains("SAND SPRINGS") || normalized.contains("SAPULPA");
         boolean hasShopping = normalized.contains("SHOPPING") || SHOP_DELIVER_PATTERN.matcher(text).find();
+        boolean estimatedTotalScreen = normalized.contains("ESTIMATED TOTAL");
 
         Matcher hardRejectMatcher = HARD_REJECT_LOCATION_PATTERN.matcher(text);
         String hardRejectLocation = null;
@@ -57,14 +58,14 @@ public final class OfferEvaluator {
             }
         }
 
-        if (hardRejectLocation != null) {
+        if (!estimatedTotalScreen && hardRejectLocation != null) {
             Double rate = pay != null && miles != null && miles > 0.0 ? pay / miles : null;
             return Result.ready(true, false, hasAllowedCity, hasShopping,
                     pay, miles, rate,
                     hardRejectLocation + " is currently set to REJECT in Location Rejection Exceptions");
         }
 
-        if (rejectMinPayEnabled && pay != null && pay + 1e-9 < rejectMinPay) {
+        if (!estimatedTotalScreen && rejectMinPayEnabled && pay != null && pay + 1e-9 < rejectMinPay) {
             Double rate = miles != null && miles > 0.0 ? pay / miles : null;
             return Result.ready(true, false, hasAllowedCity, hasShopping,
                     pay, miles, rate,
@@ -78,13 +79,15 @@ public final class OfferEvaluator {
 
         double rate = pay / miles;
         List<String> rejectionReasons = new ArrayList<>();
-        if (rejectNoShopping && !hasShopping) rejectionReasons.add("Shopping is not shown");
-        if (rejectMinPayEnabled && pay + 1e-9 < rejectMinPay) {
-            rejectionReasons.add(String.format(Locale.US, "$%.2f is below reject minimum $%.2f", pay, rejectMinPay));
-        }
-        if (rejectLowRate && rate + 1e-9 < rejectMinimumDollarsPerMile) {
-            rejectionReasons.add(String.format(Locale.US,
-                    "$%.2f/mi is below reject minimum $%.2f/mi", rate, rejectMinimumDollarsPerMile));
+        if (!estimatedTotalScreen) {
+            if (rejectNoShopping && !hasShopping) rejectionReasons.add("Shopping is not shown");
+            if (rejectMinPayEnabled && pay + 1e-9 < rejectMinPay) {
+                rejectionReasons.add(String.format(Locale.US, "$%.2f is below reject minimum $%.2f", pay, rejectMinPay));
+            }
+            if (rejectLowRate && rate + 1e-9 < rejectMinimumDollarsPerMile) {
+                rejectionReasons.add(String.format(Locale.US,
+                        "$%.2f/mi is below reject minimum $%.2f/mi", rate, rejectMinimumDollarsPerMile));
+            }
         }
         if (!rejectionReasons.isEmpty()) {
             return Result.ready(true, false, hasAllowedCity, hasShopping, pay, miles, rate,
@@ -95,11 +98,15 @@ public final class OfferEvaluator {
                 || acceptShoppingEnabled || acceptNoShoppingEnabled;
         if (!autoAcceptEnabled) {
             return Result.ready(false, false, hasAllowedCity, hasShopping, pay, miles, rate,
-                    String.format(Locale.US, "Offer passes reject rules at $%.2f/mi; Auto-Accept is off.", rate));
+                    estimatedTotalScreen
+                            ? "Estimated total screen: automatic rejection is disabled; Auto-Accept is off."
+                            : String.format(Locale.US, "Offer passes reject rules at $%.2f/mi; Auto-Accept is off.", rate));
         }
         if (!anyAcceptRule) {
             return Result.ready(false, false, hasAllowedCity, hasShopping, pay, miles, rate,
-                    "Offer passes reject rules, but no Auto-Accept criteria are enabled.");
+                    estimatedTotalScreen
+                            ? "Estimated total screen: automatic rejection is disabled, but no Auto-Accept criteria are enabled."
+                            : "Offer passes reject rules, but no Auto-Accept criteria are enabled.");
         }
 
         List<String> acceptFailures = new ArrayList<>();
@@ -124,7 +131,8 @@ public final class OfferEvaluator {
                     "Offer passes every enabled Auto-Accept criterion.");
         }
         return Result.ready(false, false, hasAllowedCity, hasShopping, pay, miles, rate,
-                "Not auto-accepted: " + String.join("; ", acceptFailures));
+                (estimatedTotalScreen ? "Estimated total screen: automatic rejection is disabled. " : "")
+                        + "Not auto-accepted: " + String.join("; ", acceptFailures));
     }
 
     static String normalize(String input) {
