@@ -9,12 +9,12 @@ public final class EstimatedTotalScreenTest {
     }
 
     private static void shouldNeverRejectEstimatedTotalScreen() {
-        CityPolicy.configure(false, false, false, false);
-        String screen = "2 stops\n16.4 miles\nEstimated total\n$19.98\nBase $11.98\nBoost $8.00\nTULSA\nREJECT\nACCEPT";
+        String screen = "2 stops\n16.4 miles\nEstimated total\n$19.98\nBase $11.98\nBoost $8.00\nREJECT\nACCEPT";
         OfferEvaluator.Result r = OfferEvaluator.evaluate(
                 screen,
                 true, true, 1.75,
                 true, 25.00,
+                true, 10.0,
                 false,
                 false, 20.00,
                 false, 1.25,
@@ -27,12 +27,12 @@ public final class EstimatedTotalScreenTest {
     }
 
     private static void shouldStillAllowAutoAcceptOnEstimatedTotalScreen() {
-        CityPolicy.configure(false, false, false, false);
-        String screen = "2 stops\n16.4 miles\nEstimated total\n$19.98\nTULSA\nREJECT\nACCEPT";
+        String screen = "2 stops\n16.4 miles\nEstimated total\n$19.98\nREJECT\nACCEPT";
         OfferEvaluator.Result r = OfferEvaluator.evaluate(
                 screen,
                 true, true, 1.75,
                 true, 25.00,
+                true, 10.0,
                 true,
                 true, 15.00,
                 false, 1.25,
@@ -43,12 +43,12 @@ public final class EstimatedTotalScreenTest {
     }
 
     private static void shouldNotConfuseEstimatedEarningsWithEstimatedTotal() {
-        CityPolicy.configure(false, false, false, false);
-        String screen = "Estimated earnings $19.98\n16.4 miles\nTULSA\nREJECT\nACCEPT";
+        String screen = "Estimated earnings $19.98\n16.4 miles\nREJECT\nACCEPT";
         OfferEvaluator.Result r = OfferEvaluator.evaluate(
                 screen,
-                false, false, 1.75,
+                false, true, 1.75,
                 false, 15.00,
+                false, 20.0,
                 false,
                 false, 20.00,
                 false, 1.25,
