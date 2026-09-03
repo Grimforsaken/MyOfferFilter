@@ -19,6 +19,8 @@ public class MyOfferFilterApp extends Application {
                 prefs.getBoolean(Prefs.ALLOW_TULSA, false),
                 prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false),
                 prefs.getBoolean(Prefs.ALLOW_JENKS, false),
-                prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false));
+                prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false),
+                prefs.getBoolean(Prefs.ALLOW_SAPULPA, true),
+                prefs.getBoolean(Prefs.ALLOW_SAND_SPRINGS, true));
     }
 }
