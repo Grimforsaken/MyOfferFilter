@@ -23,17 +23,21 @@ jobs:
           mkdir -p /tmp/myofferfilter-tests
           javac -d /tmp/myofferfilter-tests \
             app/src/main/java/com/grimforsaken/sparkofferfilter/CityPolicy.java \
+            app/src/main/java/com/grimforsaken/sparkofferfilter/AutoAcceptCityPolicy.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/ActionSafetyGuard.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferDecisionGuard.java \
+            app/src/main/java/com/grimforsaken/sparkofferfilter/UnknownLocationGuard.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferCityDetector.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferLocationPolicy.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferEvaluator.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/OfferEvaluatorTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/SafetyAndLocationTest.java \
-            app/src/test/java/com/grimforsaken/sparkofferfilter/EstimatedTotalScreenTest.java
+            app/src/test/java/com/grimforsaken/sparkofferfilter/EstimatedTotalScreenTest.java \
+            app/src/test/java/com/grimforsaken/sparkofferfilter/UnknownAndAutoAcceptLocationTest.java
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.OfferEvaluatorTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.SafetyAndLocationTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.EstimatedTotalScreenTest
+          java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.UnknownAndAutoAcceptLocationTest
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
