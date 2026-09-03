@@ -67,7 +67,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         refreshLocationPolicies();
         try { toneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 85); }
         catch (RuntimeException ignored) { toneGenerator = null; }
-        writeDecision("Service connected. Accepted Locations and Auto-Accept Locations whitelists are active. Unknown locations get one 2-second recheck before manual review.");
+        writeDecision("Service connected. Reject thresholds are evaluated before location whitelists. Unknown locations get one 2-second recheck before manual review when no reject rule already applies.");
         writeDiagnostic(Prefs.LAST_SCAN_STATUS, "Instant Scan ready; waiting for a Spark event or preloaded offer tree.");
     }
 
@@ -206,53 +206,78 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     + ". Controls: " + controls;
 
             String baseOfferKey = unknownLocationOfferKey(currentText);
+            OfferEvaluator.Result result = evaluateRules(currentText);
+            boolean estimatedTotalScreen = OfferEvaluator.normalize(currentText).contains("ESTIMATED TOTAL");
+            boolean baseRejectBeforeLocation = result.ready && result.shouldReject && !estimatedTotalScreen;
             OfferLocationPolicy.Decision location = OfferLocationPolicy.evaluate(treeText);
+            now = System.currentTimeMillis();
+
             if (!location.identified) {
                 if (anyIdentifiedLocationInScan) continue;
-                now = System.currentTimeMillis();
-                if (unknownLocationGuard.shouldLeaveForManualReview(baseOfferKey, now)) {
+
+                if (unknownLocationGuard.isManualReviewLocked(baseOfferKey, now)) {
                     unknownTimedOut = true;
                     unknownTimedOutKey = baseOfferKey;
                     unknownTimedOutCapture = currentText;
-                    bestStatus = timestamp() + " — Location is still unknown after the 2-second recheck; leaving this offer for manual review.";
-                } else {
-                    scheduleUnknownLocationRetry(baseOfferKey, now);
-                    long remaining = unknownLocationGuard.remainingMs(baseOfferKey, now);
-                    bestStatus = timestamp() + " — Location is unknown; Safe Driver will re-evaluate in "
-                            + String.format(Locale.US, "%.1f", remaining / 1000.0) + " seconds. " + controlStatus;
+                    bestStatus = timestamp() + " — This offer was left for manual review because its location remained unknown after 2 seconds.";
+                    continue;
                 }
-                continue;
-            }
 
-            if (unknownLocationGuard.isManualReviewLocked(baseOfferKey, now)) {
-                unknownTimedOut = true;
-                unknownTimedOutKey = baseOfferKey;
-                unknownTimedOutCapture = currentText;
-                bestStatus = timestamp() + " — This offer was left for manual review because its location remained unknown after 2 seconds.";
-                continue;
-            }
-            clearUnknownLocationWait(baseOfferKey);
+                // A configured reject rule is allowed to reject before the city finishes
+                // loading. The whitelist only grants a location permission to continue;
+                // it never exempts Sand Springs, Sapulpa, or any other checked location
+                // from minimum-pay, maximum-mileage, dollars-per-mile, or Shopping rules.
+                if (!baseRejectBeforeLocation) {
+                    if (unknownLocationGuard.shouldLeaveForManualReview(baseOfferKey, now)) {
+                        unknownTimedOut = true;
+                        unknownTimedOutKey = baseOfferKey;
+                        unknownTimedOutCapture = currentText;
+                        bestStatus = timestamp() + " — Location is still unknown after the 2-second recheck; leaving this offer for manual review.";
+                    } else {
+                        scheduleUnknownLocationRetry(baseOfferKey, now);
+                        long remaining = unknownLocationGuard.remainingMs(baseOfferKey, now);
+                        bestStatus = timestamp() + " — Location is unknown; Safe Driver will re-evaluate in "
+                                + String.format(Locale.US, "%.1f", remaining / 1000.0) + " seconds. " + controlStatus;
+                    }
+                    continue;
+                }
 
-            OfferEvaluator.Result result = evaluateRules(currentText);
-            boolean estimatedTotalScreen = OfferEvaluator.normalize(currentText).contains("ESTIMATED TOTAL");
+                if (baseOfferKey.equals(scheduledUnknownLocationKey)) {
+                    handler.removeCallbacks(unknownLocationRetry);
+                    scheduledUnknownLocationKey = "";
+                }
+            } else {
+                if (unknownLocationGuard.isManualReviewLocked(baseOfferKey, now)) {
+                    unknownTimedOut = true;
+                    unknownTimedOutKey = baseOfferKey;
+                    unknownTimedOutCapture = currentText;
+                    bestStatus = timestamp() + " — This offer was left for manual review because its location remained unknown after 2 seconds.";
+                    continue;
+                }
+                clearUnknownLocationWait(baseOfferKey);
 
-            if (!location.allowed && !estimatedTotalScreen) {
-                Double rate = result.pay != null && result.miles != null && result.miles > 0.0
-                        ? result.pay / result.miles : null;
-                result = OfferEvaluator.Result.ready(true, false, false, result.hasShopping,
-                        result.pay, result.miles, rate,
-                        location.location + " is not checked in Accepted Locations");
+                // Location rejection is only added when no stronger configured reject
+                // rule has already failed. This keeps the history reason accurate.
+                if (!location.allowed && !estimatedTotalScreen && !result.shouldReject) {
+                    Double rate = result.pay != null && result.miles != null && result.miles > 0.0
+                            ? result.pay / result.miles : null;
+                    result = OfferEvaluator.Result.ready(true, false, false, result.hasShopping,
+                            result.pay, result.miles, rate,
+                            location.location + " is not checked in Accepted Locations");
+                }
             }
 
             if (!result.ready) {
+                String locationText = location.identified ? location.location : "Unknown";
                 bestStatus = timestamp() + " — " + scanSource + ": " + result.reason
-                        + " Location=" + location.location + ". " + controlStatus;
+                        + " Location=" + locationText + ". " + controlStatus;
                 continue;
             }
 
-            String offerKey = stableOfferKey(result, location.location);
+            String locationText = location.identified ? location.location : "Unknown";
+            String offerKey = stableOfferKey(result, locationText);
             now = System.currentTimeMillis();
-            String details = formatOffer(result) + " Location: " + location.location + ".";
+            String details = formatOffer(result) + " Location: " + locationText + ".";
             boolean dryRun = prefs.getBoolean(Prefs.DRY_RUN, true);
 
             if (result.shouldReject) {
@@ -314,6 +339,10 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             }
 
             if (result.shouldAccept) {
+                if (!location.identified) {
+                    bestStatus = timestamp() + " — Auto-Accept is waiting for a reliable location before it can act.";
+                    continue;
+                }
                 if (!AutoAcceptCityPolicy.isAllowed(location.location)) {
                     writeDecision("LEFT FOR MANUAL REVIEW. " + location.location
                             + " is not checked in Auto-Accept Locations. " + details);
