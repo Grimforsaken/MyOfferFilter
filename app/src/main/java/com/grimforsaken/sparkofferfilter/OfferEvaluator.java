@@ -10,7 +10,6 @@ public final class OfferEvaluator {
     private static final Pattern DOLLAR_PATTERN = Pattern.compile("\\$\\s*([0-9]{1,5}(?:,[0-9]{3})*(?:\\.[0-9]{1,2})?)");
     private static final Pattern MILES_PATTERN = Pattern.compile("(?i)([0-9]+(?:\\.[0-9]+)?)\\s*(?:mi(?:le)?s?\\.?)\\b");
     private static final Pattern SHOP_DELIVER_PATTERN = Pattern.compile("(?i)\\bshop\\s*(?:&|and)\\s*deliver(?:y)?\\b");
-    private static final Pattern HARD_REJECT_LOCATION_PATTERN = Pattern.compile("(?i)\\b(TULSA|GLENPOOL|JENKS|SAM(?:'|’)?S\\s+CLUB)\\b");
 
     private OfferEvaluator() {}
 
@@ -19,7 +18,8 @@ public final class OfferEvaluator {
             boolean acceptMinPayEnabled, double acceptMinPay, boolean acceptMinRateEnabled,
             double acceptMinRate, boolean acceptMaxMilesEnabled, double acceptMaxMiles) {
         return evaluate(visibleText, rejectNoShopping, rejectLowRate, rejectMinimumDollarsPerMile,
-                false, 15.00, autoAcceptEnabled, acceptMinPayEnabled, acceptMinPay,
+                false, 15.00, false, 20.0,
+                autoAcceptEnabled, acceptMinPayEnabled, acceptMinPay,
                 acceptMinRateEnabled, acceptMinRate, acceptMaxMilesEnabled, acceptMaxMiles, false, false);
     }
 
@@ -29,13 +29,27 @@ public final class OfferEvaluator {
             double acceptMinRate, boolean acceptMaxMilesEnabled, double acceptMaxMiles,
             boolean acceptShoppingEnabled, boolean acceptNoShoppingEnabled) {
         return evaluate(visibleText, rejectNoShopping, rejectLowRate, rejectMinimumDollarsPerMile,
-                false, 15.00, autoAcceptEnabled, acceptMinPayEnabled, acceptMinPay,
+                false, 15.00, false, 20.0,
+                autoAcceptEnabled, acceptMinPayEnabled, acceptMinPay,
                 acceptMinRateEnabled, acceptMinRate, acceptMaxMilesEnabled, acceptMaxMiles,
                 acceptShoppingEnabled, acceptNoShoppingEnabled);
     }
 
     public static Result evaluate(String visibleText, boolean rejectNoShopping, boolean rejectLowRate,
             double rejectMinimumDollarsPerMile, boolean rejectMinPayEnabled, double rejectMinPay,
+            boolean autoAcceptEnabled, boolean acceptMinPayEnabled, double acceptMinPay,
+            boolean acceptMinRateEnabled, double acceptMinRate, boolean acceptMaxMilesEnabled,
+            double acceptMaxMiles, boolean acceptShoppingEnabled, boolean acceptNoShoppingEnabled) {
+        return evaluate(visibleText, rejectNoShopping, rejectLowRate, rejectMinimumDollarsPerMile,
+                rejectMinPayEnabled, rejectMinPay, false, 20.0,
+                autoAcceptEnabled, acceptMinPayEnabled, acceptMinPay,
+                acceptMinRateEnabled, acceptMinRate, acceptMaxMilesEnabled, acceptMaxMiles,
+                acceptShoppingEnabled, acceptNoShoppingEnabled);
+    }
+
+    public static Result evaluate(String visibleText, boolean rejectNoShopping, boolean rejectLowRate,
+            double rejectMinimumDollarsPerMile, boolean rejectMinPayEnabled, double rejectMinPay,
+            boolean rejectMaxMilesEnabled, double rejectMaxMiles,
             boolean autoAcceptEnabled, boolean acceptMinPayEnabled, double acceptMinPay,
             boolean acceptMinRateEnabled, double acceptMinRate, boolean acceptMaxMilesEnabled,
             double acceptMaxMiles, boolean acceptShoppingEnabled, boolean acceptNoShoppingEnabled) {
@@ -48,28 +62,18 @@ public final class OfferEvaluator {
         boolean hasShopping = normalized.contains("SHOPPING") || SHOP_DELIVER_PATTERN.matcher(text).find();
         boolean estimatedTotalScreen = normalized.contains("ESTIMATED TOTAL");
 
-        Matcher hardRejectMatcher = HARD_REJECT_LOCATION_PATTERN.matcher(text);
-        String hardRejectLocation = null;
-        while (hardRejectMatcher.find()) {
-            String location = hardRejectMatcher.group(1).toUpperCase(Locale.US).replace('’', '\'');
-            if (!CityPolicy.isAllowed(location)) {
-                hardRejectLocation = location;
-                break;
-            }
-        }
-
-        if (!estimatedTotalScreen && hardRejectLocation != null) {
-            Double rate = pay != null && miles != null && miles > 0.0 ? pay / miles : null;
-            return Result.ready(true, false, hasAllowedCity, hasShopping,
-                    pay, miles, rate,
-                    hardRejectLocation + " is currently set to REJECT in Location Rejection Exceptions");
-        }
-
         if (!estimatedTotalScreen && rejectMinPayEnabled && pay != null && pay + 1e-9 < rejectMinPay) {
             Double rate = miles != null && miles > 0.0 ? pay / miles : null;
             return Result.ready(true, false, hasAllowedCity, hasShopping,
                     pay, miles, rate,
                     String.format(Locale.US, "$%.2f is below reject minimum $%.2f", pay, rejectMinPay));
+        }
+
+        if (!estimatedTotalScreen && rejectMaxMilesEnabled && miles != null && miles - 1e-9 > rejectMaxMiles) {
+            Double rate = pay != null && miles > 0.0 ? pay / miles : null;
+            return Result.ready(true, false, hasAllowedCity, hasShopping,
+                    pay, miles, rate,
+                    String.format(Locale.US, "%.1f mi exceeds reject maximum %.1f mi", miles, rejectMaxMiles));
         }
 
         if (pay == null || miles == null || miles <= 0.0) {
@@ -87,6 +91,10 @@ public final class OfferEvaluator {
             if (rejectLowRate && rate + 1e-9 < rejectMinimumDollarsPerMile) {
                 rejectionReasons.add(String.format(Locale.US,
                         "$%.2f/mi is below reject minimum $%.2f/mi", rate, rejectMinimumDollarsPerMile));
+            }
+            if (rejectMaxMilesEnabled && miles - 1e-9 > rejectMaxMiles) {
+                rejectionReasons.add(String.format(Locale.US,
+                        "%.1f mi exceeds reject maximum %.1f mi", miles, rejectMaxMiles));
             }
         }
         if (!rejectionReasons.isEmpty()) {
