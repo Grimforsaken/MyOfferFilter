@@ -15,6 +15,28 @@ public class MyOfferFilterApp extends Application {
             prefs.edit().putBoolean(Prefs.INSTALLER_CLEANUP_COMPLETED, true).apply();
         }
 
+        // Sand Springs and Sapulpa are the default checked locations in both lists.
+        // Only seed these values when the user has never made a choice, so an
+        // intentional later uncheck is preserved across upgrades.
+        SharedPreferences.Editor defaults = null;
+        if (!prefs.contains(Prefs.ALLOW_SAND_SPRINGS)) {
+            if (defaults == null) defaults = prefs.edit();
+            defaults.putBoolean(Prefs.ALLOW_SAND_SPRINGS, true);
+        }
+        if (!prefs.contains(Prefs.ALLOW_SAPULPA)) {
+            if (defaults == null) defaults = prefs.edit();
+            defaults.putBoolean(Prefs.ALLOW_SAPULPA, true);
+        }
+        if (!prefs.contains(Prefs.ACCEPT_LOCATION_SAND_SPRINGS)) {
+            if (defaults == null) defaults = prefs.edit();
+            defaults.putBoolean(Prefs.ACCEPT_LOCATION_SAND_SPRINGS, true);
+        }
+        if (!prefs.contains(Prefs.ACCEPT_LOCATION_SAPULPA)) {
+            if (defaults == null) defaults = prefs.edit();
+            defaults.putBoolean(Prefs.ACCEPT_LOCATION_SAPULPA, true);
+        }
+        if (defaults != null) defaults.apply();
+
         CityPolicy.configure(
                 prefs.getBoolean(Prefs.ALLOW_TULSA, false),
                 prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false),
