@@ -59,7 +59,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         refreshLocationPolicy();
         try { toneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 85); }
         catch (RuntimeException ignored) { toneGenerator = null; }
-        writeDecision("Service connected. Instant Scan is active. Accepted offers are protected from rejection, and all rejection actions are blocked for 10 seconds after acceptance.");
+        writeDecision("Service connected. Accepted Locations whitelist is active. Accepted offers remain protected from later rejection.");
         writeDiagnostic(Prefs.LAST_SCAN_STATUS, "Instant Scan ready; waiting for a Spark event or preloaded offer tree.");
     }
 
@@ -178,22 +178,51 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             AccessibilityNodeInfo rejectNode = findDecisionControl(root, false);
             AccessibilityNodeInfo acceptNode = findDecisionControl(root, true);
             String controls = collectClickableLabels(root);
-            OfferEvaluator.Result result = evaluateRules(currentText);
             String controlStatus = "Accept=" + (acceptNode != null ? controlVisibility(acceptNode) : "missing")
                     + ", Reject/Decline=" + (rejectNode != null ? controlVisibility(rejectNode) : "missing")
                     + ". Controls: " + controls;
 
-            if (!result.ready) {
-                bestStatus = timestamp() + " — " + scanSource + ": " + result.reason + " " + controlStatus;
+            OfferLocationPolicy.Decision location = OfferLocationPolicy.evaluate(treeText);
+            if (!location.identified) {
+                bestStatus = timestamp() + " — " + scanSource + ": " + location.reason + " " + controlStatus;
                 continue;
             }
 
-            String offerKey = stableOfferKey(result);
+            OfferEvaluator.Result result = evaluateRules(currentText);
+            boolean estimatedTotalScreen = OfferEvaluator.normalize(currentText).contains("ESTIMATED TOTAL");
+
+            if (!location.allowed) {
+                Double rate = result.pay != null && result.miles != null && result.miles > 0.0
+                        ? result.pay / result.miles : null;
+                if (estimatedTotalScreen) {
+                    result = OfferEvaluator.Result.ready(false, false, false, result.hasShopping,
+                            result.pay, result.miles, rate,
+                            "Estimated total screen: automatic rejection is disabled. "
+                                    + location.location + " is not checked in Accepted Locations.");
+                } else {
+                    result = OfferEvaluator.Result.ready(true, false, false, result.hasShopping,
+                            result.pay, result.miles, rate,
+                            location.location + " is not checked in Accepted Locations");
+                }
+            } else if (!result.ready) {
+                bestStatus = timestamp() + " — " + scanSource + ": " + result.reason
+                        + " Location=" + location.location + ". " + controlStatus;
+                continue;
+            }
+
+            String offerKey = stableOfferKey(result, location.location);
             now = System.currentTimeMillis();
-            String details = formatOffer(result);
+            String details = formatOffer(result) + " Location: " + location.location + ".";
             boolean dryRun = prefs.getBoolean(Prefs.DRY_RUN, true);
 
             if (result.shouldReject) {
+                if (estimatedTotalScreen) {
+                    decisionGuard.clearRejectCandidate();
+                    writeDecision("REJECTION BLOCKED because this is the Estimated total screen. " + details);
+                    writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                            timestamp() + " — ESTIMATED TOTAL SAFETY: automatic rejection is disabled on this screen.");
+                    return;
+                }
                 if (result.pay == null || result.miles == null || result.miles <= 0.0) {
                     bestStatus = timestamp() + " — REJECT decision known, but Safe Driver is waiting for complete pay/mileage identity before taking a reject action. " + controlStatus;
                     continue;
@@ -245,6 +274,10 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             }
 
             if (result.shouldAccept) {
+                if (!location.allowed) {
+                    writeDecision("LEFT FOR MANUAL REVIEW. Location is not checked in Accepted Locations. " + details);
+                    return;
+                }
                 decisionGuard.noteAcceptIntent(offerKey, now);
                 if (awaitingRejectConfirmation && offerKey.equals(pendingRejectOfferKey)) {
                     clearPendingRejectConfirmation();
@@ -267,8 +300,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     safetyGuard.onAccepted(now);
                     playDecisionChime(true);
                     String city = OfferCityDetector.detect(treeText);
+                    if ("Unknown".equals(city) && !"Sam's Club".equals(location.location)) city = location.location;
                     String cityLabel = LanguageText.isSpanish(prefs) ? "Ciudad: " : "City: ";
-                    String summary = cityLabel + city + "\n" + details + " Reason: " + result.reason;
+                    String summary = cityLabel + city + "\n" + formatOffer(result) + " Reason: " + result.reason;
                     OfferHistory.addAccepted(prefs, timestamp() + "\n" + summary);
                     writeDecision("ACCEPTED immediately. Rejections locked for 10 seconds and this accepted offer is protected from later rejection. " + summary);
                     writeDiagnostic(Prefs.LAST_SCAN_STATUS, lockoutMessage(now));
@@ -307,7 +341,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 prefs.getBoolean(Prefs.ALLOW_TULSA, false),
                 prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false),
                 prefs.getBoolean(Prefs.ALLOW_JENKS, false),
-                prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false));
+                prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false),
+                prefs.getBoolean(Prefs.ALLOW_SAPULPA, true),
+                prefs.getBoolean(Prefs.ALLOW_SAND_SPRINGS, true));
     }
 
     private OfferEvaluator.Result evaluateRules(String currentText) {
@@ -317,6 +353,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 prefs.getFloat(Prefs.THRESHOLD, 1.25f),
                 prefs.getBoolean(Prefs.REJECT_MIN_PAY_ENABLED, true),
                 prefs.getFloat(Prefs.REJECT_MIN_PAY, 15.00f),
+                prefs.getBoolean(Prefs.REJECT_MAX_MILES_ENABLED, false),
+                prefs.getFloat(Prefs.REJECT_MAX_MILES, 20.0f),
                 prefs.getBoolean(Prefs.AUTO_ACCEPT_ENABLED, false),
                 prefs.getBoolean(Prefs.ACCEPT_MIN_PAY_ENABLED, false),
                 prefs.getFloat(Prefs.ACCEPT_MIN_PAY, 20.00f),
@@ -406,10 +444,10 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 || n.contains("SHOPPING") || n.contains("OFFER");
     }
 
-    private String stableOfferKey(OfferEvaluator.Result r) {
+    private String stableOfferKey(OfferEvaluator.Result r, String location) {
         String pay = r.pay == null ? "?" : String.format(Locale.US, "%.2f", r.pay);
         String miles = r.miles == null ? "?" : String.format(Locale.US, "%.2f", r.miles);
-        return pay + ":" + miles + ":" + r.hasShopping;
+        return pay + ":" + miles + ":" + r.hasShopping + ":" + (location == null ? "?" : location);
     }
 
     private boolean isDuplicateAction(String key, long now) {
