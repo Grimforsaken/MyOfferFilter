@@ -34,6 +34,14 @@ final class Prefs {
     static final String ACCEPT_MAX_MILES = "accept_max_miles";
     static final String ACCEPT_SHOPPING_ENABLED = "accept_shopping_enabled";
     static final String ACCEPT_NO_SHOPPING_ENABLED = "accept_no_shopping_enabled";
+
+    static final String ACCEPT_LOCATION_TULSA = "accept_location_tulsa";
+    static final String ACCEPT_LOCATION_GLENPOOL = "accept_location_glenpool";
+    static final String ACCEPT_LOCATION_JENKS = "accept_location_jenks";
+    static final String ACCEPT_LOCATION_SAMS_CLUB = "accept_location_sams_club";
+    static final String ACCEPT_LOCATION_SAPULPA = "accept_location_sapulpa";
+    static final String ACCEPT_LOCATION_SAND_SPRINGS = "accept_location_sand_springs";
+
     static final String LEGACY_ACCEPT_NO_SHIPPING_ENABLED = "accept_no_shipping_enabled";
     static final String ACCEPT_NO_SHIPPING_ENABLED = ACCEPT_NO_SHOPPING_ENABLED;
 
