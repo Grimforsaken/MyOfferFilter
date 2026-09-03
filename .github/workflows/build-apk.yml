@@ -33,11 +33,13 @@ jobs:
             app/src/test/java/com/grimforsaken/sparkofferfilter/OfferEvaluatorTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/SafetyAndLocationTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/EstimatedTotalScreenTest.java \
-            app/src/test/java/com/grimforsaken/sparkofferfilter/UnknownAndAutoAcceptLocationTest.java
+            app/src/test/java/com/grimforsaken/sparkofferfilter/UnknownAndAutoAcceptLocationTest.java \
+            app/src/test/java/com/grimforsaken/sparkofferfilter/WhitelistRejectPriorityTest.java
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.OfferEvaluatorTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.SafetyAndLocationTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.EstimatedTotalScreenTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.UnknownAndAutoAcceptLocationTest
+          java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.WhitelistRejectPriorityTest
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
