@@ -40,6 +40,16 @@ final class OfferDecisionGuard {
     boolean isRejectStable(String offerKey, String reason, long now) {
         if (offerKey == null || offerKey.isEmpty()) return false;
         String safeReason = reason == null ? "" : reason;
+
+        // Location whitelist failures are intentionally a fast path. Once a reliable
+        // order location is identified and that location is not checked, do not add
+        // the normal 650 ms reject-stability delay. The post-accept and same-offer
+        // safety locks are still checked by the Accessibility service before clicking.
+        if (isImmediateLocationRejectReason(safeReason)) {
+            clearRejectCandidate();
+            return true;
+        }
+
         if (!offerKey.equals(rejectCandidateKey) || !safeReason.equals(rejectCandidateReason)) {
             rejectCandidateKey = offerKey;
             rejectCandidateReason = safeReason;
@@ -47,6 +57,10 @@ final class OfferDecisionGuard {
             return false;
         }
         return now - rejectCandidateFirstSeenAt >= REJECT_STABILITY_MS;
+    }
+
+    static boolean isImmediateLocationRejectReason(String reason) {
+        return reason != null && reason.contains("is not checked in Accepted Locations");
     }
 
     long rejectStabilityRemainingMs(long now) {
