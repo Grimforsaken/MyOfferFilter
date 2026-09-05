@@ -7,8 +7,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 final class OfferCityDetector {
-    private static final Pattern CITY_STATE_PATTERN = Pattern.compile(
-            "(?im)^\\s*([A-Za-z][A-Za-z .'-]{1,40}?)\\s*,?\\s+(?:OK|Oklahoma)(?:\\s+\\d{5}(?:-\\d{4})?)?\\s*$");
+    private static final Pattern CITY_STATE_LINE_PATTERN = Pattern.compile(
+            "(?im)^\\s*([A-Za-z][A-Za-z .'-]{1,40}?)\\s*,?\\s+(?:OK|Oklahoma)\\b(?:\\s*,?\\s*\\d{5}(?:-\\d{4})?)?\\s*$");
+    private static final Pattern SPLIT_CITY_STATE_PATTERN = Pattern.compile(
+            "(?im)^\\s*([A-Za-z][A-Za-z .'-]{1,40}?)\\s*,?\\s*$\\R\\s*(?:OK|Oklahoma)\\b(?:\\s*,?\\s*\\d{5}(?:-\\d{4})?)?\\s*$");
+    private static final Pattern INLINE_ADDRESS_PATTERN = Pattern.compile(
+            "(?im)^.*?,\\s*([A-Za-z][A-Za-z .'-]{1,40}?)\\s*,\\s*(?:OK|Oklahoma)\\b(?:\\s*,?\\s*\\d{5}(?:-\\d{4})?)?\\s*$");
+    private static final Pattern LABELED_CITY_PATTERN = Pattern.compile(
+            "(?im)^\\s*(?:city|pickup city|store city|location city)\\s*[:\\-]\\s*([A-Za-z][A-Za-z .'-]{1,40}?)\\s*$");
 
     private OfferCityDetector() {}
 
@@ -16,14 +22,21 @@ final class OfferCityDetector {
         if (currentTreeText == null || currentTreeText.trim().isEmpty()) return "Unknown";
 
         Set<String> cities = new LinkedHashSet<>();
-        Matcher matcher = CITY_STATE_PATTERN.matcher(currentTreeText);
+        addCities(cities, CITY_STATE_LINE_PATTERN, currentTreeText);
+        addCities(cities, SPLIT_CITY_STATE_PATTERN, currentTreeText);
+        addCities(cities, INLINE_ADDRESS_PATTERN, currentTreeText);
+        addCities(cities, LABELED_CITY_PATTERN, currentTreeText);
+
+        if (cities.size() == 1) return cities.iterator().next();
+        return "Unknown";
+    }
+
+    private static void addCities(Set<String> cities, Pattern pattern, String text) {
+        Matcher matcher = pattern.matcher(text);
         while (matcher.find()) {
             String city = cleanCity(matcher.group(1));
             if (!city.isEmpty()) cities.add(city);
         }
-
-        if (cities.size() == 1) return cities.iterator().next();
-        return "Unknown";
     }
 
     private static String cleanCity(String raw) {
