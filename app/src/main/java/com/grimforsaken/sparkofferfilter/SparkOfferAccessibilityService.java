@@ -67,7 +67,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         refreshLocationPolicies();
         try { toneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 85); }
         catch (RuntimeException ignored) { toneGenerator = null; }
-        writeDecision("Service connected. Reject thresholds are evaluated before location whitelists. Unknown locations get one 2-second recheck before manual review when no reject rule already applies.");
+        writeDecision("Service connected. Unchecked Accepted Locations use immediate rejection; other reject rules keep safety verification. Unknown locations get one 2-second recheck before manual review when no reject rule already applies.");
         writeDiagnostic(Prefs.LAST_SCAN_STATUS, "Instant Scan ready; waiting for a Spark event or preloaded offer tree.");
     }
 
@@ -256,9 +256,10 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 }
                 clearUnknownLocationWait(baseOfferKey);
 
-                // Location rejection is only added when no stronger configured reject
-                // rule has already failed. This keeps the history reason accurate.
-                if (!location.allowed && !estimatedTotalScreen && !result.shouldReject) {
+                // A reliably identified unchecked location is an immediate hard reject.
+                // It overrides a pass/accept decision from the other rules, but the
+                // accepted-offer safety guards below still run before any click.
+                if (!location.allowed) {
                     Double rate = result.pay != null && result.miles != null && result.miles > 0.0
                             ? result.pay / result.miles : null;
                     result = OfferEvaluator.Result.ready(true, false, false, result.hasShopping,
@@ -279,6 +280,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             now = System.currentTimeMillis();
             String details = formatOffer(result) + " Location: " + locationText + ".";
             boolean dryRun = prefs.getBoolean(Prefs.DRY_RUN, true);
+            boolean immediateLocationReject = result.shouldReject
+                    && OfferDecisionGuard.isImmediateLocationRejectReason(result.reason);
 
             if (result.shouldReject) {
                 if (estimatedTotalScreen) {
@@ -288,7 +291,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                             timestamp() + " — ESTIMATED TOTAL SAFETY: automatic rejection is disabled on this screen.");
                     return;
                 }
-                if (result.pay == null || result.miles == null || result.miles <= 0.0) {
+                if (!immediateLocationReject
+                        && (result.pay == null || result.miles == null || result.miles <= 0.0)) {
                     bestStatus = timestamp() + " — REJECT decision known, but Safe Driver is waiting for complete pay/mileage identity before taking a reject action. " + controlStatus;
                     continue;
                 }
@@ -312,7 +316,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     return;
                 }
                 if (dryRun) {
-                    writeDecision("TEST MODE — would REJECT after safety verification. " + details + " Reason: " + result.reason);
+                    writeDecision(immediateLocationReject
+                            ? "TEST MODE — would REJECT immediately for unchecked location. " + details + " Reason: " + result.reason
+                            : "TEST MODE — would REJECT after safety verification. " + details + " Reason: " + result.reason);
                     writeDiagnostic(Prefs.LAST_SCAN_STATUS, timestamp() + " — " + scanSource + ". " + controlStatus);
                     continue;
                 }
@@ -324,7 +330,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     continue;
                 }
                 if (rejectNode == null) {
-                    bestStatus = timestamp() + " — REJECT decision verified, waiting for Reject/Decline control. " + controlStatus;
+                    bestStatus = timestamp() + (immediateLocationReject
+                            ? " — UNCHECKED LOCATION: Reject/Decline control has not loaded yet. "
+                            : " — REJECT decision verified, waiting for Reject/Decline control. ") + controlStatus;
                     continue;
                 }
                 if (clickControl(rejectNode)) {
@@ -332,7 +340,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     rejectConfirmationDeadline = now + REJECT_CONFIRMATION_WINDOW_MS;
                     pendingRejectOfferKey = offerKey;
                     pendingRejectSummary = details + " Reason: " + result.reason;
-                    writeDecision("REJECT selected after safety verification; waiting for Spark confirmation. " + pendingRejectSummary);
+                    writeDecision(immediateLocationReject
+                            ? "REJECT selected immediately for unchecked Accepted Location; waiting for Spark confirmation. " + pendingRejectSummary
+                            : "REJECT selected after safety verification; waiting for Spark confirmation. " + pendingRejectSummary);
                 }
                 writeDiagnostic(Prefs.LAST_CAPTURE, truncate(currentText, 3500));
                 return;
