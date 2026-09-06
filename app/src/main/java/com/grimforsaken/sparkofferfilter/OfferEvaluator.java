@@ -61,6 +61,12 @@ public final class OfferEvaluator {
         boolean hasAllowedCity = normalized.contains("SAND SPRINGS") || normalized.contains("SAPULPA");
         boolean hasShopping = normalized.contains("SHOPPING") || SHOP_DELIVER_PATTERN.matcher(text).find();
 
+        if (DropoffPolicy.shouldReject(text)) {
+            Double rate = pay != null && miles != null && miles > 0.0 ? pay / miles : null;
+            return Result.ready(true, false, hasAllowedCity, hasShopping,
+                    pay, miles, rate, DropoffPolicy.rejectionReason(text));
+        }
+
         if (rejectMinPayEnabled && pay != null && pay + 1e-9 < rejectMinPay) {
             Double rate = miles != null && miles > 0.0 ? pay / miles : null;
             return Result.ready(true, false, hasAllowedCity, hasShopping,
