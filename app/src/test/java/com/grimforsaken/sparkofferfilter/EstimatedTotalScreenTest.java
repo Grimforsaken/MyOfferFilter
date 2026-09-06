@@ -2,11 +2,18 @@ package com.grimforsaken.sparkofferfilter;
 
 public final class EstimatedTotalScreenTest {
     public static void main(String[] args) {
+        shouldExposeEstimatedTotalSafetyHeading();
         shouldRejectLowPayOnEstimatedTotalScreen();
         shouldRejectTooManyMilesOnEstimatedTotalScreen();
         shouldRejectLowRateOnEstimatedTotalScreen();
         shouldStillAllowAutoAcceptWhenRejectRulesPass();
         System.out.println("Estimated total offer tests passed.");
+    }
+
+    private static void shouldExposeEstimatedTotalSafetyHeading() {
+        String screen = "3 stops • 13.7 miles • 54 mins\nEstimated total\n$30.83\nBase\n$16.10\nBoost\n$8.00\nTips (estimated)\n$6.73\nREJECT\nACCEPT";
+        require(OfferEvaluator.normalize(screen).contains("ESTIMATED TOTAL"),
+                "the Accessibility service must be able to recognize the Estimated total screen and suppress Reject");
     }
 
     private static void shouldRejectLowPayOnEstimatedTotalScreen() {
@@ -22,7 +29,7 @@ public final class EstimatedTotalScreenTest {
                 false, 20.0,
                 false, false);
         require(r.ready && r.shouldReject && !r.shouldAccept,
-                "minimum-dollar reject rule must apply on Estimated total offers");
+                "the evaluator may detect a reject rule, while the service-level Estimated total safety blocks the click");
     }
 
     private static void shouldRejectTooManyMilesOnEstimatedTotalScreen() {
@@ -38,7 +45,7 @@ public final class EstimatedTotalScreenTest {
                 false, 20.0,
                 false, false);
         require(r.ready && r.shouldReject,
-                "maximum-mile reject rule must apply on Estimated total offers");
+                "the evaluator may flag maximum miles before the service-level Estimated total safety suppresses Reject");
     }
 
     private static void shouldRejectLowRateOnEstimatedTotalScreen() {
@@ -55,7 +62,7 @@ public final class EstimatedTotalScreenTest {
                 false, false);
         require(r.ready && r.shouldReject && r.dollarsPerMile != null
                         && r.dollarsPerMile < 1.25,
-                "dollars-per-mile reject rule must apply on Estimated total offers");
+                "the evaluator may flag low dollars-per-mile before the service-level Estimated total safety suppresses Reject");
     }
 
     private static void shouldStillAllowAutoAcceptWhenRejectRulesPass() {
