@@ -29,6 +29,7 @@ jobs:
             app/src/main/java/com/grimforsaken/sparkofferfilter/UnknownLocationGuard.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferCityDetector.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferLocationPolicy.java \
+            app/src/main/java/com/grimforsaken/sparkofferfilter/DropoffPolicy.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferEvaluator.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/OfferEvaluatorTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/SafetyAndLocationTest.java \
@@ -36,7 +37,8 @@ jobs:
             app/src/test/java/com/grimforsaken/sparkofferfilter/UnknownAndAutoAcceptLocationTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/WhitelistRejectPriorityTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/StrictWhitelistDetectionTest.java \
-            app/src/test/java/com/grimforsaken/sparkofferfilter/ImmediateLocationRejectTest.java
+            app/src/test/java/com/grimforsaken/sparkofferfilter/ImmediateLocationRejectTest.java \
+            app/src/test/java/com/grimforsaken/sparkofferfilter/DropoffRejectTest.java
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.OfferEvaluatorTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.SafetyAndLocationTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.EstimatedTotalScreenTest
@@ -44,6 +46,7 @@ jobs:
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.WhitelistRejectPriorityTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.StrictWhitelistDetectionTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.ImmediateLocationRejectTest
+          java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.DropoffRejectTest
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
