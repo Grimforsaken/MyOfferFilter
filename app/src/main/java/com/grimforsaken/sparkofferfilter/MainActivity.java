@@ -56,6 +56,7 @@ public class MainActivity extends Activity {
         EditText rejectThreshold = findViewById(R.id.rejectThreshold);
         CheckBox rejectMaxMilesEnabled = findViewById(R.id.rejectMaxMilesEnabled);
         EditText rejectMaxMiles = findViewById(R.id.rejectMaxMiles);
+        CheckBox rejectThreePlusDropoffs = findViewById(R.id.rejectThreePlusDropoffs);
 
         CheckBox allowSandSprings = findViewById(R.id.allowSandSprings);
         CheckBox allowSapulpa = findViewById(R.id.allowSapulpa);
@@ -96,6 +97,7 @@ public class MainActivity extends Activity {
         rejectThreshold.setText(format(prefs.getFloat(Prefs.THRESHOLD, 1.25f), 2));
         rejectMaxMilesEnabled.setChecked(prefs.getBoolean(Prefs.REJECT_MAX_MILES_ENABLED, false));
         rejectMaxMiles.setText(format(prefs.getFloat(Prefs.REJECT_MAX_MILES, 20.0f), 1));
+        rejectThreePlusDropoffs.setChecked(prefs.getBoolean(Prefs.REJECT_3_PLUS_DROPOFFS, false));
 
         allowSandSprings.setChecked(prefs.getBoolean(Prefs.ALLOW_SAND_SPRINGS, true));
         allowSapulpa.setChecked(prefs.getBoolean(Prefs.ALLOW_SAPULPA, true));
@@ -132,6 +134,7 @@ public class MainActivity extends Activity {
         bindNumber(rejectThreshold, Prefs.THRESHOLD, 0.10f, 20.0f);
         bindCheck(rejectMaxMilesEnabled, Prefs.REJECT_MAX_MILES_ENABLED);
         bindNumber(rejectMaxMiles, Prefs.REJECT_MAX_MILES, 0.1f, 1000.0f);
+        bindCheck(rejectThreePlusDropoffs, Prefs.REJECT_3_PLUS_DROPOFFS);
 
         bindCheck(allowSandSprings, Prefs.ALLOW_SAND_SPRINGS);
         bindCheck(allowSapulpa, Prefs.ALLOW_SAPULPA);
@@ -196,8 +199,8 @@ public class MainActivity extends Activity {
 
         ((TextView) findViewById(R.id.rejectHeading)).setText(es ? "REGLAS DE RECHAZO AUTOMÁTICO" : "AUTO-REJECT RULES");
         ((TextView) findViewById(R.id.rejectPriorityText)).setText(es
-                ? "Las reglas de monto mínimo, máximo de millas, dólares por milla y Compras siguen aplicándose incluso cuando Sand Springs o Sapulpa están permitidas. Si la ubicación es desconocida, Safe Driver espera 2 segundos y vuelve a comprobar; si sigue siendo desconocida, deja el pedido para revisión manual. Los pedidos ya aceptados permanecen protegidos por los bloqueos de seguridad."
-                : "Minimum-dollar, maximum-mile, dollars-per-mile, and Shopping reject rules still apply even when Sand Springs or Sapulpa is allowed. If the location is unknown, Safe Driver waits 2 seconds and checks again; if it is still unknown, the order is left for manual review. Already accepted offers remain protected by the safety locks.");
+                ? "Las reglas de monto mínimo, máximo de millas, dólares por milla, 3 o más entregas y Compras siguen aplicándose incluso cuando Sand Springs o Sapulpa están permitidas. Si la ubicación es desconocida, Safe Driver espera 2 segundos y vuelve a comprobar; si sigue siendo desconocida, deja el pedido para revisión manual. Los pedidos ya aceptados permanecen protegidos por los bloqueos de seguridad."
+                : "Minimum-dollar, maximum-mile, dollars-per-mile, 3+ drop-off, and Shopping reject rules still apply even when Sand Springs or Sapulpa is allowed. If the location is unknown, Safe Driver waits 2 seconds and checks again; if it is still unknown, the order is left for manual review. Already accepted offers remain protected by the safety locks.");
 
         ((TextView) findViewById(R.id.locationHeading)).setText(es ? "UBICACIONES ACEPTADAS" : "ACCEPTED LOCATIONS");
         ((TextView) findViewById(R.id.locationHelp)).setText(es
@@ -217,6 +220,7 @@ public class MainActivity extends Activity {
         ((TextView) findViewById(R.id.rejectRateLabel)).setText(es ? "Rechazar por debajo de $ / milla:  " : "Reject below $ / mile:  ");
         ((CheckBox) findViewById(R.id.rejectMaxMilesEnabled)).setText(es ? "Rechazar pedidos que superen este máximo de millas" : "Reject orders over this maximum number of miles");
         ((TextView) findViewById(R.id.rejectMaxMilesLabel)).setText(es ? "Rechazar por encima de millas:  " : "Reject over miles:  ");
+        ((CheckBox) findViewById(R.id.rejectThreePlusDropoffs)).setText(es ? "Rechazar pedidos con 3 o más entregas" : "Reject orders with 3 or more drop-offs");
 
         ((TextView) findViewById(R.id.acceptHeading)).setText(es ? "REGLAS DE ACEPTACIÓN AUTOMÁTICA" : "AUTO-ACCEPT RULES");
         ((CheckBox) findViewById(R.id.autoAcceptEnabled)).setText(es ? "Activar aceptación automática" : "Enable Auto-Accept");
@@ -276,6 +280,7 @@ public class MainActivity extends Activity {
                 prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAMS_CLUB, false),
                 prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAPULPA, true),
                 prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAND_SPRINGS, true));
+        DropoffPolicy.configure(prefs.getBoolean(Prefs.REJECT_3_PLUS_DROPOFFS, false));
     }
 
     private void bindNumber(EditText editText, String key, float min, float max) {
