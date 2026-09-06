@@ -17,6 +17,7 @@ final class Prefs {
     static final String REJECT_MIN_PAY = "reject_min_pay";
     static final String REJECT_MAX_MILES_ENABLED = "reject_max_miles_enabled";
     static final String REJECT_MAX_MILES = "reject_max_miles";
+    static final String REJECT_3_PLUS_DROPOFFS = "reject_3_plus_dropoffs";
 
     static final String ALLOW_TULSA = "allow_tulsa";
     static final String ALLOW_GLENPOOL = "allow_glenpool";
