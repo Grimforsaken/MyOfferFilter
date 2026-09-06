@@ -136,16 +136,13 @@ public final class OfferEvaluator {
     }
 
     static String normalize(String input) {
-        // "Estimated total" is ordinary offer content now. The old build used this
-        // exact normalized phrase as a blanket reject exemption in the service.
-        // Keep it normalized as one token so that legacy exemption can no longer
-        // suppress the user's configured reject rules. Accepted offers are instead
-        // protected by the post-accept and same-offer safety guards.
+        // Preserve the literal words "ESTIMATED TOTAL" so the Accessibility service
+        // can recognize Spark's detail/route screen and suppress all automatic Reject
+        // actions there. Normal offer cards use "Total includes" instead.
         return input.toUpperCase(Locale.US)
                 .replace('\u00A0', ' ')
                 .replaceAll("\\s+", " ")
-                .trim()
-                .replace("ESTIMATED TOTAL", "ESTIMATED_TOTAL");
+                .trim();
     }
 
     static Double parseBestPay(String text) {
