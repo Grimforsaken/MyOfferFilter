@@ -12,6 +12,8 @@ final class OfferLocationPolicy {
             "(?im)^.*?,\\s*([A-Za-z][A-Za-z .'-]{1,40}?)\\s*,\\s*(?:OK|Oklahoma)\\b(?:\\s*,?\\s*\\d{5}(?:-\\d{4})?)?\\s*$");
     private static final Pattern LABELED_CITY_PATTERN = Pattern.compile(
             "(?im)^\\s*(?:city|pickup city|pickup location city|store city|store location city|location city)\\s*[:\\-]\\s*([A-Za-z][A-Za-z .'-]{1,40}?)\\s*$");
+    private static final Pattern WALMART_CITY_STORE_PATTERN = Pattern.compile(
+            "(?im)^\\s*Walmart\\s+([A-Za-z][A-Za-z .'-]{1,40}?)\\s*#\\s*\\d+\\b.*$");
     private static final Pattern SAMS_CLUB_PATTERN = Pattern.compile("(?i)\\bSAM(?:'|’)?S\\s+CLUB\\b");
 
     private OfferLocationPolicy() {}
@@ -24,6 +26,14 @@ final class OfferLocationPolicy {
         // This prevents a checked city from accidentally allowing an unchecked Sam's Club.
         if (SAMS_CLUB_PATTERN.matcher(currentTreeText).find()) {
             return Decision.identified("Sam's Club", CityPolicy.isAllowed("Sam's Club"));
+        }
+
+        // Spark's normal offer cards expose stores in a reliable form such as
+        // "Walmart TULSA #5093". This is a store-location label, not a bare map city,
+        // so it is safe to use for the Accepted Locations whitelist.
+        String walmartCity = firstMatchCity(WALMART_CITY_STORE_PATTERN, currentTreeText);
+        if (walmartCity != null) {
+            return Decision.identified(walmartCity, CityPolicy.isAllowed(walmartCity));
         }
 
         // Explicit pickup/store-city labels are the most reliable city signal.
