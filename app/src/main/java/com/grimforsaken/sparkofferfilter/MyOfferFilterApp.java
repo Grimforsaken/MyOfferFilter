@@ -52,5 +52,7 @@ public class MyOfferFilterApp extends Application {
                 prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAMS_CLUB, false),
                 prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAPULPA, true),
                 prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAND_SPRINGS, true));
+
+        DropoffPolicy.configure(prefs.getBoolean(Prefs.REJECT_3_PLUS_DROPOFFS, false));
     }
 }
