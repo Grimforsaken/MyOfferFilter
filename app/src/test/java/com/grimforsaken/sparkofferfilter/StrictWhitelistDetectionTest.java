@@ -6,6 +6,8 @@ public final class StrictWhitelistDetectionTest {
         shouldRejectUnlistedCityFromFullStreetAddress();
         shouldRejectUnlistedCityWhenStateIsOnNextLine();
         shouldRejectExplicitLabeledCity();
+        shouldRejectUncheckedWalmartTulsaStoreLabel();
+        shouldAllowCheckedWalmartSandSpringsStoreLabel();
         shouldAllowCheckedSandSpringsAcrossAddressFormats();
         shouldKeepBareMapLabelUnknown();
         System.out.println("Strict whitelist detection tests passed.");
@@ -41,6 +43,22 @@ public final class StrictWhitelistDetectionTest {
                 "Store City: Claremore\n$30.00\n8 miles");
         require(d.identified && !d.allowed && "Claremore".equals(d.location),
                 "an explicit reliable city label outside the whitelist must reject");
+    }
+
+    private static void shouldRejectUncheckedWalmartTulsaStoreLabel() {
+        CityPolicy.configure(false, false, false, false, true, true);
+        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate(
+                "$32.14\n3 stops • 3.9 miles • 54 mins\nShopping\nWalmart TULSA #5093\nREJECT\nACCEPT");
+        require(d.identified && !d.allowed && "Tulsa".equals(d.location),
+                "Walmart TULSA #store must be a reliable Tulsa location and reject while Tulsa is unchecked");
+    }
+
+    private static void shouldAllowCheckedWalmartSandSpringsStoreLabel() {
+        CityPolicy.configure(false, false, false, false, true, true);
+        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate(
+                "$25.00\nShopping\nWalmart SAND SPRINGS #1234\nREJECT\nACCEPT");
+        require(d.identified && d.allowed && "Sand Springs".equals(d.location),
+                "Walmart SAND SPRINGS #store must pass the location whitelist by default");
     }
 
     private static void shouldAllowCheckedSandSpringsAcrossAddressFormats() {
