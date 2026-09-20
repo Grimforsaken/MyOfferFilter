@@ -117,7 +117,8 @@
             <EditText android:id="@+id/acceptMaxMiles" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="10.0" android:selectAllOnFocus="true" />
         </LinearLayout>
 
-        <Button android:id="@+id/openHistory" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="22dp" android:text="Accepted / Rejected Order History" />
+        <Button android:id="@+id/openAnalytics" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="22dp" android:text="Order Earnings Comparison" />
+        <Button android:id="@+id/openHistory" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Accepted / Rejected Order History" />
         <Button android:id="@+id/openAccessibility" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Open Accessibility Settings" />
         <TextView android:id="@+id/serviceStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Accessibility service status: checking…" android:textStyle="bold" />
 
