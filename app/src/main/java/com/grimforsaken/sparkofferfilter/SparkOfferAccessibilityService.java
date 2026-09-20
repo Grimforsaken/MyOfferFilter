@@ -484,6 +484,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 prefs.getBoolean(Prefs.REJECT_MAX_DURATION_ENABLED, false),
                 prefs.getInt(Prefs.REJECT_MAX_DURATION_HOURS, 1),
                 prefs.getInt(Prefs.REJECT_MAX_DURATION_MINUTES, 0));
+        HourlyRatePolicy.configure(
+                prefs.getBoolean(Prefs.REJECT_MIN_HOURLY_ENABLED, false),
+                prefs.getFloat(Prefs.REJECT_MIN_HOURLY, 20.00f));
     }
 
     private OfferEvaluator.Result evaluateRules(String currentText) {
