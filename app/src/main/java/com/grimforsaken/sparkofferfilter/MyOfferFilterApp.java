@@ -54,5 +54,9 @@ public class MyOfferFilterApp extends Application {
                 prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAND_SPRINGS, true));
 
         DropoffPolicy.configure(prefs.getBoolean(Prefs.REJECT_3_PLUS_DROPOFFS, false));
+        TripDurationPolicy.configure(
+                prefs.getBoolean(Prefs.REJECT_MAX_DURATION_ENABLED, false),
+                prefs.getInt(Prefs.REJECT_MAX_DURATION_HOURS, 1),
+                prefs.getInt(Prefs.REJECT_MAX_DURATION_MINUTES, 0));
     }
 }
