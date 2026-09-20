@@ -479,6 +479,11 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAMS_CLUB, false),
                 prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAPULPA, true),
                 prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAND_SPRINGS, true));
+        DropoffPolicy.configure(prefs.getBoolean(Prefs.REJECT_3_PLUS_DROPOFFS, false));
+        TripDurationPolicy.configure(
+                prefs.getBoolean(Prefs.REJECT_MAX_DURATION_ENABLED, false),
+                prefs.getInt(Prefs.REJECT_MAX_DURATION_HOURS, 1),
+                prefs.getInt(Prefs.REJECT_MAX_DURATION_MINUTES, 0));
     }
 
     private OfferEvaluator.Result evaluateRules(String currentText) {
