@@ -89,6 +89,7 @@ public class MainActivity extends Activity {
         serviceStatus = findViewById(R.id.serviceStatus);
         latestDecision = findViewById(R.id.latestDecision);
         diagnostics = findViewById(R.id.diagnostics);
+        Button openAnalytics = findViewById(R.id.openAnalytics);
         Button openHistory = findViewById(R.id.openHistory);
         Button openAccessibility = findViewById(R.id.openAccessibility);
 
@@ -185,6 +186,7 @@ public class MainActivity extends Activity {
             refreshStatus();
         });
 
+        openAnalytics.setOnClickListener(v -> startActivity(new Intent(this, StatsActivity.class)));
         openHistory.setOnClickListener(v -> startActivity(new Intent(this, HistoryActivity.class)));
         openAccessibility.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
         applyLanguage();
@@ -264,6 +266,7 @@ public class MainActivity extends Activity {
         ((CheckBox) findViewById(R.id.acceptMinRateEnabled)).setText(es ? "Requerir un mínimo de dólares por milla" : "Require a minimum dollars-per-mile amount");
         ((TextView) findViewById(R.id.acceptMinRateLabel)).setText(es ? "Mínimo $ / milla:  " : "Minimum $ / mile:  ");
         ((CheckBox) findViewById(R.id.acceptMaxMilesEnabled)).setText(es ? "Requerir un máximo de millas" : "Require a maximum number of miles");
+        ((Button) findViewById(R.id.openAnalytics)).setText(es ? "Comparación de ganancias por orden" : "Order Earnings Comparison");
         ((TextView) findViewById(R.id.acceptMaxMilesLabel)).setText(es ? "Máximo de millas:  " : "Maximum miles:  ");
 
         ((Button) findViewById(R.id.openHistory)).setText(es ? "Historial de pedidos aceptados / rechazados" : "Accepted / Rejected Order History");
