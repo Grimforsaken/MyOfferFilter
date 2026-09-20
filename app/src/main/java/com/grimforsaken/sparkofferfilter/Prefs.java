@@ -21,6 +21,8 @@ final class Prefs {
     static final String REJECT_MAX_DURATION_ENABLED = "reject_max_duration_enabled";
     static final String REJECT_MAX_DURATION_HOURS = "reject_max_duration_hours";
     static final String REJECT_MAX_DURATION_MINUTES = "reject_max_duration_minutes";
+    static final String REJECT_MIN_HOURLY_ENABLED = "reject_min_hourly_enabled";
+    static final String REJECT_MIN_HOURLY = "reject_min_hourly";
 
     static final String ALLOW_TULSA = "allow_tulsa";
     static final String ALLOW_GLENPOOL = "allow_glenpool";
