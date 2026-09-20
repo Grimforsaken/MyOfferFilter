@@ -1,11 +1,15 @@
 package com.grimforsaken.sparkofferfilter;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TabHost;
@@ -20,10 +24,12 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class StatsActivity extends Activity {
     private SharedPreferences prefs;
@@ -37,6 +43,10 @@ public class StatsActivity extends Activity {
     private LinearLayout weekList;
     private LinearLayout monthList;
     private LinearLayout yearList;
+    private Button editOrdersButton;
+    private Button deleteSelectedButton;
+    private boolean editMode = false;
+    private final Set<String> selectedRecordKeys = new HashSet<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +64,8 @@ public class StatsActivity extends Activity {
         weekList = findViewById(R.id.weekList);
         monthList = findViewById(R.id.monthList);
         yearList = findViewById(R.id.yearList);
+        editOrdersButton = findViewById(R.id.editOrdersButton);
+        deleteSelectedButton = findViewById(R.id.deleteSelectedButton);
         tabHost = findViewById(android.R.id.tabhost);
 
         if (tabHost == null) {
@@ -67,6 +79,16 @@ public class StatsActivity extends Activity {
         tabHost.addTab(tabHost.newTabSpec("week").setIndicator("Week").setContent(R.id.weekTab));
         tabHost.addTab(tabHost.newTabSpec("month").setIndicator("Month").setContent(R.id.monthTab));
         tabHost.addTab(tabHost.newTabSpec("year").setIndicator("Year").setContent(R.id.yearTab));
+
+        editOrdersButton.setOnClickListener(v -> {
+            editMode = !editMode;
+            selectedRecordKeys.clear();
+            if (editMode) tabHost.setCurrentTabByTag("orders");
+            updateEditControls();
+            refresh();
+        });
+        deleteSelectedButton.setOnClickListener(v -> confirmDeleteSelected());
+        updateEditControls();
 
         gasPrice.setText(String.format(Locale.US, "%.2f", prefs.getFloat(Prefs.GAS_PRICE, 0.0f)));
         gasPrice.addTextChangedListener(new TextWatcher() {
@@ -89,6 +111,7 @@ public class StatsActivity extends Activity {
     protected void onResume() {
         super.onResume();
         applyLanguage();
+        updateEditControls();
         refresh();
     }
 
@@ -101,6 +124,9 @@ public class StatsActivity extends Activity {
         gasHelp.setText(es
                 ? "Precio actual de gasolina ($/gal). Este precio se mantiene para los días futuros hasta que lo cambies y se guarda con cada orden confirmada."
                 : "Current gas price ($/gal). This carries forward day by day until you change it and is saved with each confirmed order.");
+        editOrdersButton.setText(editMode ? (es ? "Cancelar" : "Cancel") : (es ? "Editar" : "Edit"));
+        deleteSelectedButton.setText("🗑");
+        deleteSelectedButton.setContentDescription(es ? "Eliminar órdenes seleccionadas" : "Delete selected orders");
 
         if (tabHost.getTabWidget() != null && tabHost.getTabWidget().getTabCount() >= 5) {
             String[] labels = es
@@ -126,30 +152,78 @@ public class StatsActivity extends Activity {
         ordersList.removeAllViews();
         if (records.isEmpty()) {
             addText(ordersList, emptyMessage(), false);
+            deleteSelectedButton.setEnabled(false);
             return;
         }
+
         for (OrderRecord r : records) {
-            String when = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                    .format(new java.util.Date(r.timestampMs));
-            String place = !r.store.isEmpty() ? r.store : (!r.city.isEmpty() ? r.city : "Unknown location");
-            String trip = r.tripId.isEmpty() ? "" : " • Trip " + r.tripId;
-            String line1 = when + " • " + place + trip;
-            String line2 = String.format(Locale.US,
-                    "$%.2f • %.1f mi • %s\n$%.2f/mi  ↔  $%.2f/hr",
-                    r.pay, r.miles, formatDuration(r.minutes),
-                    r.dollarsPerMile(), r.dollarsPerHour());
-            String line3;
-            if (r.gasPrice > 0.0) {
-                line3 = String.format(Locale.US,
-                        "Gas $%.2f/gal @ 35 MPG: $%.2f • After fuel: $%.2f",
-                        r.gasPrice, r.fuelCostAt35Mpg(), r.afterFuel());
-            } else {
-                line3 = LanguageText.isSpanish(prefs)
-                        ? "Gasolina @ 35 MPG: precio no establecido para esta orden"
-                        : "Gas @ 35 MPG: gas price was not set for this order";
+            String text = formatOrder(r);
+            if (!editMode) {
+                addText(ordersList, text, true);
+                continue;
             }
-            addText(ordersList, line1 + "\n" + line2 + "\n" + line3, true);
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.TOP);
+            row.setPadding(4, 4, 4, 4);
+            row.setBackgroundColor(0xFFF3F3F3);
+
+            CheckBox check = new CheckBox(this);
+            String key = r.stableKey();
+            check.setChecked(selectedRecordKeys.contains(key));
+            check.setContentDescription(LanguageText.isSpanish(prefs)
+                    ? "Seleccionar orden para eliminar"
+                    : "Select order for deletion");
+            check.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) selectedRecordKeys.add(key);
+                else selectedRecordKeys.remove(key);
+                deleteSelectedButton.setEnabled(!selectedRecordKeys.isEmpty());
+            });
+
+            TextView details = new TextView(this);
+            details.setText(text);
+            details.setTextSize(15f);
+            details.setTextIsSelectable(true);
+            details.setPadding(8, 14, 14, 14);
+
+            row.addView(check, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            row.addView(details, textParams);
+
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            rowParams.setMargins(0, 0, 0, 10);
+            ordersList.addView(row, rowParams);
         }
+        deleteSelectedButton.setEnabled(!selectedRecordKeys.isEmpty());
+    }
+
+    private String formatOrder(OrderRecord r) {
+        String when = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                .format(new java.util.Date(r.timestampMs));
+        String place = !r.store.isEmpty() ? r.store : (!r.city.isEmpty() ? r.city : "Unknown location");
+        String trip = r.tripId.isEmpty() ? "" : " • Trip " + r.tripId;
+        String line1 = when + " • " + place + trip;
+        String line2 = String.format(Locale.US,
+                "$%.2f • %.1f mi • %s\n$%.2f/mi  ↔  $%.2f/hr",
+                r.pay, r.miles, formatDuration(r.minutes),
+                r.dollarsPerMile(), r.dollarsPerHour());
+        String line3;
+        if (r.gasPrice > 0.0) {
+            line3 = String.format(Locale.US,
+                    "Gas $%.2f/gal @ 35 MPG: $%.2f • After fuel: $%.2f",
+                    r.gasPrice, r.fuelCostAt35Mpg(), r.afterFuel());
+        } else {
+            line3 = LanguageText.isSpanish(prefs)
+                    ? "Gasolina @ 35 MPG: precio no establecido para esta orden"
+                    : "Gas @ 35 MPG: gas price was not set for this order";
+        }
+        return line1 + "\n" + line2 + "\n" + line3;
     }
 
     private void renderGroups(LinearLayout target, List<OrderRecord> records, String kind) {
@@ -217,6 +291,35 @@ public class StatsActivity extends Activity {
                     : "Gas @ 35 MPG: gas price not set";
         }
         return first + "\n" + metrics + "\n" + gas;
+    }
+
+    private void updateEditControls() {
+        if (editOrdersButton == null || deleteSelectedButton == null) return;
+        boolean es = prefs != null && LanguageText.isSpanish(prefs);
+        editOrdersButton.setText(editMode ? (es ? "Cancelar" : "Cancel") : (es ? "Editar" : "Edit"));
+        deleteSelectedButton.setVisibility(editMode ? View.VISIBLE : View.GONE);
+        deleteSelectedButton.setEnabled(editMode && !selectedRecordKeys.isEmpty());
+    }
+
+    private void confirmDeleteSelected() {
+        if (!editMode || selectedRecordKeys.isEmpty()) return;
+        boolean es = LanguageText.isSpanish(prefs);
+        int count = selectedRecordKeys.size();
+        String message = es
+                ? "¿Eliminar permanentemente " + count + (count == 1 ? " orden seleccionada?" : " órdenes seleccionadas?")
+                : "Permanently delete " + count + (count == 1 ? " selected order?" : " selected orders?");
+        new AlertDialog.Builder(this)
+                .setTitle(es ? "Eliminar órdenes" : "Delete orders")
+                .setMessage(message)
+                .setNegativeButton(es ? "Cancelar" : "Cancel", null)
+                .setPositiveButton(es ? "Eliminar" : "Delete", (dialog, which) -> {
+                    AcceptedOrderStore.deleteRecords(prefs, new HashSet<>(selectedRecordKeys));
+                    selectedRecordKeys.clear();
+                    editMode = false;
+                    updateEditControls();
+                    refresh();
+                })
+                .show();
     }
 
     private void addText(LinearLayout target, String text, boolean divider) {
