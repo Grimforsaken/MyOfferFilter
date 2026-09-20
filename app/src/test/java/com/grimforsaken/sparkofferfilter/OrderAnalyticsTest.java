@@ -1,6 +1,9 @@
 package com.grimforsaken.sparkofferfilter;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public final class OrderAnalyticsTest {
     public static void main(String[] args) {
@@ -16,6 +19,16 @@ public final class OrderAnalyticsTest {
         require(close(s.fuelCost, 3.0), "fuel cost at 35 MPG");
         require(close(s.afterFuel, 47.0), "after fuel");
         require(close(s.averageGasPrice, 3.50), "average gas price");
+
+        Set<String> delete = new HashSet<>();
+        delete.add(a.stableKey());
+        List<OrderRecord> kept = OrderAnalytics.withoutKeys(Arrays.asList(a, b), delete);
+        require(kept.size() == 1, "selected order must be removed");
+        require(kept.get(0).stableKey().equals(b.stableKey()), "unselected order must remain");
+        OrderAnalytics.Summary afterDelete = OrderAnalytics.summarize(kept);
+        require(afterDelete.count == 1, "summary must recalculate after deletion");
+        require(close(afterDelete.totalPay, 30.0), "remaining pay after deletion");
+
         System.out.println("Order analytics tests passed.");
     }
 
