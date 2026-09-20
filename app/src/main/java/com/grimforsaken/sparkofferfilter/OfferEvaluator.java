@@ -73,6 +73,12 @@ public final class OfferEvaluator {
                     pay, miles, rate, TripDurationPolicy.rejectionReason(text));
         }
 
+        if (HourlyRatePolicy.shouldReject(pay, text)) {
+            Double rate = pay != null && miles != null && miles > 0.0 ? pay / miles : null;
+            return Result.ready(true, false, hasAllowedCity, hasShopping,
+                    pay, miles, rate, HourlyRatePolicy.rejectionReason(pay, text));
+        }
+
         if (rejectMinPayEnabled && pay != null && pay + 1e-9 < rejectMinPay) {
             Double rate = miles != null && miles > 0.0 ? pay / miles : null;
             return Result.ready(true, false, hasAllowedCity, hasShopping,
