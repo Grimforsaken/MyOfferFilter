@@ -73,9 +73,12 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
         if (prefs == null) prefs = getSharedPreferences(Prefs.NAME, MODE_PRIVATE);
-        if (!prefs.getBoolean(Prefs.MASTER_ENABLED, false)) return;
         CharSequence packageName = event.getPackageName();
         if (packageName == null || !SPARK_PACKAGE.contentEquals(packageName)) return;
+
+        observeAcceptedOrderTracking(event.getSource());
+
+        if (!prefs.getBoolean(Prefs.MASTER_ENABLED, false)) return;
 
         String eventPayload = collectEventPayload(event);
         if (looksLikeOfferPayload(eventPayload)) {
@@ -387,8 +390,13 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     if ("Unknown".equals(city) && !"Sam's Club".equals(location.location)) city = location.location;
                     String cityLabel = LanguageText.isSpanish(prefs) ? "Ciudad: " : "City: ";
                     String summary = cityLabel + city + "\n" + formatOffer(result) + " Reason: " + result.reason;
-                    OfferHistory.addAccepted(prefs, timestamp() + "\n" + summary);
-                    writeDecision("ACCEPTED immediately. Rejections locked for 10 seconds and this accepted offer is protected from later rejection. " + summary);
+                    if (result.hasShopping) {
+                        AcceptedOrderStore.noteAutoAccepted(prefs, currentText, city, now);
+                        writeDecision("ACCEPT clicked. Waiting for the active Shopping trip / CONFIRM ARRIVAL screen to confirm the order. Rejections remain locked and this offer is protected. " + summary);
+                    } else {
+                        OfferHistory.addAccepted(prefs, timestamp() + "\n" + summary);
+                        writeDecision("ACCEPTED immediately. Rejections locked for 10 seconds and this accepted offer is protected from later rejection. " + summary);
+                    }
                     writeDiagnostic(Prefs.LAST_SCAN_STATUS, lockoutMessage(now));
                     writeDiagnostic(Prefs.LAST_CAPTURE, truncate(currentText, 3500));
                     return;
@@ -421,6 +429,49 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         } else if (!sawReadableText) {
             writeDiagnostic(Prefs.LAST_SCAN_STATUS,
                     timestamp() + " — Spark accessibility tree exists, but no readable offer text is exposed yet (" + scanSource + ").");
+        }
+    }
+
+    private void observeAcceptedOrderTracking(AccessibilityNodeInfo eventSource) {
+        if (prefs == null) return;
+        long now = System.currentTimeMillis();
+        List<AccessibilityNodeInfo> roots = collectSparkCandidateRoots(eventSource);
+        for (AccessibilityNodeInfo root : roots) {
+            String text = collectAllText(root);
+            if (text == null || text.trim().isEmpty()) continue;
+
+            AcceptedOrderStore.Confirmation confirmation =
+                    AcceptedOrderStore.confirmFromShoppingTripScreen(prefs, text, now);
+            if (confirmation.screenConfirmed) {
+                if (!confirmation.duplicate) {
+                    if (confirmation.record != null) {
+                        OrderRecord r = confirmation.record;
+                        String cityLabel = LanguageText.isSpanish(prefs) ? "Ciudad: " : "City: ";
+                        String summary = cityLabel + (r.city.isEmpty() ? "Unknown" : r.city)
+                                + "\n" + String.format(Locale.US,
+                                "$%.2f, %.1f mi, %d min, $%.2f/mi, $%.2f/hr.",
+                                r.pay, r.miles, r.minutes, r.dollarsPerMile(), r.dollarsPerHour())
+                                + (r.store.isEmpty() ? "" : " " + r.store + ".")
+                                + (r.tripId.isEmpty() ? "" : " Trip " + r.tripId + ".")
+                                + (r.gasPrice > 0.0
+                                ? String.format(Locale.US,
+                                " Gas $%.2f/gal @ 35 MPG: $%.2f; after fuel $%.2f.",
+                                r.gasPrice, r.fuelCostAt35Mpg(), r.afterFuel())
+                                : " Gas price was not set for this order.");
+                        OfferHistory.addAccepted(prefs, timestamp() + "\n" + summary);
+                        writeDecision("CONFIRMED ACCEPTED SHOPPING ORDER from the active Stop / CONFIRM ARRIVAL screen. " + summary);
+                    } else {
+                        writeDecision("CONFIRMED ACCEPTED SHOPPING ORDER from the active Stop / CONFIRM ARRIVAL screen, but no matching recent offer metrics were available to add to Earnings Comparison.");
+                    }
+                    writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                            timestamp() + " — Accepted Shopping order confirmed by active trip screen.");
+                    writeDiagnostic(Prefs.LAST_CAPTURE, truncate(text, 3500));
+                }
+                return;
+            }
+
+            String city = OfferCityDetector.detect(text);
+            AcceptedOrderStore.rememberCandidate(prefs, text, city, now);
         }
     }
 
