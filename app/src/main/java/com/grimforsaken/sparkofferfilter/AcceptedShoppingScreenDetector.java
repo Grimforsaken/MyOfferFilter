@@ -8,7 +8,7 @@ final class AcceptedShoppingScreenDetector {
     private static final Pattern TRIP_HEADER = Pattern.compile(
             "(?i)\\bSTOP\\s*#\\s*\\d+\\s+FOR\\s+TRIP\\s+(\\d+)\\b");
     private static final Pattern STORE_LINE = Pattern.compile(
-            "(?im)^\\s*((?:WALMART|SAM(?:'|’)?S\\s+CLUB)[^\\r\\n]*#\\s*\\d+)\\s*$");
+            "(?i)\\b((?:WALMART|SAM(?:'|’)?S\\s+CLUB)\\s+[A-Z][A-Z .'-]*?\\s*#\\s*\\d+)\\b");
     private static final Pattern STORE_NUMBER = Pattern.compile("#\\s*(\\d+)");
 
     private AcceptedShoppingScreenDetector() {}
@@ -34,7 +34,8 @@ final class AcceptedShoppingScreenDetector {
 
     static String storeLabel(String text) {
         if (text == null) return "";
-        Matcher matcher = STORE_LINE.matcher(text);
+        String flattened = text.replace('\u00A0', ' ').replaceAll("\\s+", " ");
+        Matcher matcher = STORE_LINE.matcher(flattened);
         if (!matcher.find()) return "";
         return matcher.group(1).trim().replaceAll("\\s+", " ");
     }
