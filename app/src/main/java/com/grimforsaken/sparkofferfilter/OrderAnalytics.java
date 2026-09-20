@@ -1,11 +1,24 @@
 package com.grimforsaken.sparkofferfilter;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 final class OrderAnalytics {
     static final double MPG = 35.0;
 
     private OrderAnalytics() {}
+
+    static List<OrderRecord> withoutKeys(List<OrderRecord> records, Set<String> keys) {
+        List<OrderRecord> kept = new ArrayList<>();
+        if (records == null) return kept;
+        for (OrderRecord record : records) {
+            if (record == null) continue;
+            if (keys != null && keys.contains(record.stableKey())) continue;
+            kept.add(record);
+        }
+        return kept;
+    }
 
     static Summary summarize(List<OrderRecord> records) {
         int count = 0;
