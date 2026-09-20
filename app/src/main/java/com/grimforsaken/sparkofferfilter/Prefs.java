@@ -60,5 +60,13 @@ final class Prefs {
     static final String HISTORY_REJECTED = "history_rejected";
     static final String HISTORY_ACCEPTED = "history_accepted";
 
+    static final String GAS_PRICE = "gas_price";
+    static final String RECENT_OFFER_RECORD = "recent_offer_record";
+    static final String RECENT_OFFER_AT = "recent_offer_at";
+    static final String PENDING_ACCEPTED_ORDER = "pending_accepted_order";
+    static final String PENDING_ACCEPTED_AT = "pending_accepted_at";
+    static final String CONFIRMED_ORDER_RECORDS = "confirmed_order_records";
+    static final String LAST_CONFIRMED_TRIP_ID = "last_confirmed_trip_id";
+
     private Prefs() {}
 }
