@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@color/surface">
+
+    <TextView
+        android:id="@+id/statsTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Order Earnings Comparison"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary" />
+
+    <TextView
+        android:id="@+id/statsDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="Confirmed Shopping order analytics."
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/gasHelp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Current gas price ($/gal)"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/gasPrice"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:inputType="numberDecimal"
+        android:singleLine="true"
+        android:text="0.00"
+        android:selectAllOnFocus="true" />
+
+    <TabHost
+        android:id="@android:id/tabhost"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="10dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fillViewport="true"
+                android:scrollbars="none">
+                <TabWidget
+                    android:id="@android:id/tabs"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </HorizontalScrollView>
+
+            <FrameLayout
+                android:id="@android:id/tabcontent"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
+
+                <ScrollView android:id="@+id/ordersTab" android:layout_width="match_parent" android:layout_height="match_parent">
+                    <LinearLayout android:id="@+id/ordersList" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+                </ScrollView>
+                <ScrollView android:id="@+id/dayTab" android:layout_width="match_parent" android:layout_height="match_parent">
+                    <LinearLayout android:id="@+id/dayList" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+                </ScrollView>
+                <ScrollView android:id="@+id/weekTab" android:layout_width="match_parent" android:layout_height="match_parent">
+                    <LinearLayout android:id="@+id/weekList" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+                </ScrollView>
+                <ScrollView android:id="@+id/monthTab" android:layout_width="match_parent" android:layout_height="match_parent">
+                    <LinearLayout android:id="@+id/monthList" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+                </ScrollView>
+                <ScrollView android:id="@+id/yearTab" android:layout_width="match_parent" android:layout_height="match_parent">
+                    <LinearLayout android:id="@+id/yearList" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+                </ScrollView>
+            </FrameLayout>
+        </LinearLayout>
+    </TabHost>
+</LinearLayout>
