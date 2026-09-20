@@ -213,8 +213,8 @@ public class MainActivity extends Activity {
 
         ((TextView) findViewById(R.id.locationHeading)).setText(es ? "UBICACIONES ACEPTADAS" : "ACCEPTED LOCATIONS");
         ((TextView) findViewById(R.id.locationHelp)).setText(es
-                ? "Esta lista solo controla el filtro de ubicación. Una ubicación marcada NO omite las reglas de monto mínimo, máximo de millas, dólares por milla ni Compras. Sand Springs y Sapulpa están marcadas de forma predeterminada."
-                : "This list only controls the location filter. A checked location does NOT bypass minimum-dollar, maximum-mile, dollars-per-mile, or Shopping reject rules. Sand Springs and Sapulpa are checked by default.");
+                ? "Esta lista solo controla el filtro de ubicación. Una ubicación marcada NO omite las reglas de monto mínimo, máximo de millas, dólares por milla, tiempo máximo de viaje, 3 o más entregas ni Compras. Sand Springs y Sapulpa están marcadas de forma predeterminada."
+                : "This list only controls the location filter. A checked location does NOT bypass minimum-dollar, maximum-mile, dollars-per-mile, maximum trip-time, 3+ drop-off, or Shopping reject rules. Sand Springs and Sapulpa are checked by default.");
         ((CheckBox) findViewById(R.id.allowSandSprings)).setText(es ? "Aceptar pedidos de Sand Springs" : "Accept Sand Springs offers");
         ((CheckBox) findViewById(R.id.allowSapulpa)).setText(es ? "Aceptar pedidos de Sapulpa" : "Accept Sapulpa offers");
         ((CheckBox) findViewById(R.id.allowTulsa)).setText(es ? "Aceptar pedidos de Tulsa" : "Accept Tulsa offers");
@@ -297,7 +297,6 @@ public class MainActivity extends Activity {
                 prefs.getBoolean(Prefs.REJECT_MAX_DURATION_ENABLED, false),
                 prefs.getInt(Prefs.REJECT_MAX_DURATION_HOURS, 1),
                 prefs.getInt(Prefs.REJECT_MAX_DURATION_MINUTES, 0));
-        DropoffPolicy.configure(prefs.getBoolean(Prefs.REJECT_3_PLUS_DROPOFFS, false));
     }
 
     private void bindNumber(EditText editText, String key, float min, float max) {
