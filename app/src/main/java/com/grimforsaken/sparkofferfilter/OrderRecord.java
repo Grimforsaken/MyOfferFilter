@@ -45,6 +45,10 @@ final class OrderRecord {
         return pay - fuelCostAt35Mpg();
     }
 
+    String stableKey() {
+        return timestampMs + "|" + tripId + "|" + pay + "|" + miles + "|" + minutes;
+    }
+
     String serialize() {
         return timestampMs + "|" + pay + "|" + miles + "|" + minutes + "|" + gasPrice + "|"
                 + enc(city) + "|" + enc(store) + "|" + enc(tripId);
