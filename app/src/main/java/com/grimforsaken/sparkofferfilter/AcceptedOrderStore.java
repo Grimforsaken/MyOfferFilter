@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 final class AcceptedOrderStore {
     private static final long RECENT_CANDIDATE_MAX_AGE_MS = 10L * 60L * 1000L;
@@ -94,6 +95,15 @@ final class AcceptedOrderStore {
         return out;
     }
 
+    static int deleteRecords(SharedPreferences prefs, Set<String> recordKeys) {
+        if (prefs == null || recordKeys == null || recordKeys.isEmpty()) return 0;
+        List<OrderRecord> current = records(prefs);
+        List<OrderRecord> kept = OrderAnalytics.withoutKeys(current, recordKeys);
+        int deleted = current.size() - kept.size();
+        if (deleted > 0) saveRecords(prefs, kept);
+        return deleted;
+    }
+
     private static OrderRecord fromOfferText(SharedPreferences prefs, String text, String city, long now, String tripId) {
         if (text == null) return null;
         String normalized = OfferEvaluator.normalize(text);
@@ -137,10 +147,17 @@ final class AcceptedOrderStore {
         List<OrderRecord> current = new ArrayList<>(records(prefs));
         current.add(0, record);
         if (current.size() > MAX_RECORDS) current = current.subList(0, MAX_RECORDS);
+        saveRecords(prefs, current);
+    }
+
+    private static void saveRecords(SharedPreferences prefs, List<OrderRecord> records) {
         StringBuilder out = new StringBuilder();
-        for (OrderRecord r : current) {
-            if (out.length() > 0) out.append('\n');
-            out.append(r.serialize());
+        if (records != null) {
+            for (OrderRecord r : records) {
+                if (r == null) continue;
+                if (out.length() > 0) out.append('\n');
+                out.append(r.serialize());
+            }
         }
         prefs.edit().putString(Prefs.CONFIRMED_ORDER_RECORDS, out.toString()).apply();
     }
