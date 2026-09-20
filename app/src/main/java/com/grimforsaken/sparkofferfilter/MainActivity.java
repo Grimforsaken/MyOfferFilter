@@ -60,6 +60,8 @@ public class MainActivity extends Activity {
         CheckBox rejectMaxDurationEnabled = findViewById(R.id.rejectMaxDurationEnabled);
         EditText rejectMaxDurationHours = findViewById(R.id.rejectMaxDurationHours);
         EditText rejectMaxDurationMinutes = findViewById(R.id.rejectMaxDurationMinutes);
+        CheckBox rejectMinHourlyEnabled = findViewById(R.id.rejectMinHourlyEnabled);
+        EditText rejectMinHourly = findViewById(R.id.rejectMinHourly);
 
         CheckBox allowSandSprings = findViewById(R.id.allowSandSprings);
         CheckBox allowSapulpa = findViewById(R.id.allowSapulpa);
@@ -104,6 +106,8 @@ public class MainActivity extends Activity {
         rejectMaxDurationEnabled.setChecked(prefs.getBoolean(Prefs.REJECT_MAX_DURATION_ENABLED, false));
         rejectMaxDurationHours.setText(String.valueOf(prefs.getInt(Prefs.REJECT_MAX_DURATION_HOURS, 1)));
         rejectMaxDurationMinutes.setText(String.valueOf(prefs.getInt(Prefs.REJECT_MAX_DURATION_MINUTES, 0)));
+        rejectMinHourlyEnabled.setChecked(prefs.getBoolean(Prefs.REJECT_MIN_HOURLY_ENABLED, false));
+        rejectMinHourly.setText(format(prefs.getFloat(Prefs.REJECT_MIN_HOURLY, 20.00f), 2));
 
         allowSandSprings.setChecked(prefs.getBoolean(Prefs.ALLOW_SAND_SPRINGS, true));
         allowSapulpa.setChecked(prefs.getBoolean(Prefs.ALLOW_SAPULPA, true));
@@ -144,6 +148,8 @@ public class MainActivity extends Activity {
         bindCheck(rejectMaxDurationEnabled, Prefs.REJECT_MAX_DURATION_ENABLED);
         bindInt(rejectMaxDurationHours, Prefs.REJECT_MAX_DURATION_HOURS, 0, 99);
         bindInt(rejectMaxDurationMinutes, Prefs.REJECT_MAX_DURATION_MINUTES, 0, 59);
+        bindCheck(rejectMinHourlyEnabled, Prefs.REJECT_MIN_HOURLY_ENABLED);
+        bindNumber(rejectMinHourly, Prefs.REJECT_MIN_HOURLY, 0.01f, 1000.0f);
 
         bindCheck(allowSandSprings, Prefs.ALLOW_SAND_SPRINGS);
         bindCheck(allowSapulpa, Prefs.ALLOW_SAPULPA);
@@ -208,13 +214,13 @@ public class MainActivity extends Activity {
 
         ((TextView) findViewById(R.id.rejectHeading)).setText(es ? "REGLAS DE RECHAZO AUTOMÁTICO" : "AUTO-REJECT RULES");
         ((TextView) findViewById(R.id.rejectPriorityText)).setText(es
-                ? "Las reglas de monto mínimo, máximo de millas, dólares por milla, duración máxima del viaje, 3 o más entregas y Compras siguen aplicándose incluso cuando Sand Springs o Sapulpa están permitidas. Si la ubicación es desconocida, Safe Driver espera 2 segundos y vuelve a comprobar; si sigue siendo desconocida, deja el pedido para revisión manual. Los pedidos ya aceptados permanecen protegidos por los bloqueos de seguridad."
-                : "Minimum-dollar, maximum-mile, dollars-per-mile, maximum trip-time, 3+ drop-off, and Shopping reject rules still apply even when Sand Springs or Sapulpa is allowed. If the location is unknown, Safe Driver waits 2 seconds and checks again; if it is still unknown, the order is left for manual review. Already accepted offers remain protected by the safety locks.");
+                ? "Las reglas de monto mínimo, máximo de millas, dólares por milla, dólares por hora, duración máxima del viaje, 3 o más entregas y Compras siguen aplicándose incluso cuando Sand Springs o Sapulpa están permitidas. Si la ubicación es desconocida, Safe Driver espera 2 segundos y vuelve a comprobar; si sigue siendo desconocida, deja el pedido para revisión manual. Los pedidos ya aceptados permanecen protegidos por los bloqueos de seguridad."
+                : "Minimum-dollar, maximum-mile, dollars-per-mile, dollars-per-hour, maximum trip-time, 3+ drop-off, and Shopping reject rules still apply even when Sand Springs or Sapulpa is allowed. If the location is unknown, Safe Driver waits 2 seconds and checks again; if it is still unknown, the order is left for manual review. Already accepted offers remain protected by the safety locks.");
 
         ((TextView) findViewById(R.id.locationHeading)).setText(es ? "UBICACIONES ACEPTADAS" : "ACCEPTED LOCATIONS");
         ((TextView) findViewById(R.id.locationHelp)).setText(es
-                ? "Esta lista solo controla el filtro de ubicación. Una ubicación marcada NO omite las reglas de monto mínimo, máximo de millas, dólares por milla, tiempo máximo de viaje, 3 o más entregas ni Compras. Sand Springs y Sapulpa están marcadas de forma predeterminada."
-                : "This list only controls the location filter. A checked location does NOT bypass minimum-dollar, maximum-mile, dollars-per-mile, maximum trip-time, 3+ drop-off, or Shopping reject rules. Sand Springs and Sapulpa are checked by default.");
+                ? "Esta lista solo controla el filtro de ubicación. Una ubicación marcada NO omite las reglas de monto mínimo, máximo de millas, dólares por milla, dólares por hora, tiempo máximo de viaje, 3 o más entregas ni Compras. Sand Springs y Sapulpa están marcadas de forma predeterminada."
+                : "This list only controls the location filter. A checked location does NOT bypass minimum-dollar, maximum-mile, dollars-per-mile, dollars-per-hour, maximum trip-time, 3+ drop-off, or Shopping reject rules. Sand Springs and Sapulpa are checked by default.");
         ((CheckBox) findViewById(R.id.allowSandSprings)).setText(es ? "Aceptar pedidos de Sand Springs" : "Accept Sand Springs offers");
         ((CheckBox) findViewById(R.id.allowSapulpa)).setText(es ? "Aceptar pedidos de Sapulpa" : "Accept Sapulpa offers");
         ((CheckBox) findViewById(R.id.allowTulsa)).setText(es ? "Aceptar pedidos de Tulsa" : "Accept Tulsa offers");
@@ -233,6 +239,8 @@ public class MainActivity extends Activity {
         ((CheckBox) findViewById(R.id.rejectMaxDurationEnabled)).setText(es ? "Rechazar pedidos que superen este tiempo estimado de viaje" : "Reject orders over this estimated trip time");
         ((TextView) findViewById(R.id.rejectMaxDurationHoursLabel)).setText(es ? "Horas:  " : "Hours:  ");
         ((TextView) findViewById(R.id.rejectMaxDurationMinutesLabel)).setText(es ? "Minutos:  " : "Minutes:  ");
+        ((CheckBox) findViewById(R.id.rejectMinHourlyEnabled)).setText(es ? "Rechazar pedidos por debajo de este monto de dólares por hora" : "Reject orders below this dollars-per-hour amount");
+        ((TextView) findViewById(R.id.rejectMinHourlyLabel)).setText(es ? "Rechazar por debajo de $ / hora:  " : "Reject below $ / hour:  ");
 
         ((TextView) findViewById(R.id.acceptHeading)).setText(es ? "REGLAS DE ACEPTACIÓN AUTOMÁTICA" : "AUTO-ACCEPT RULES");
         ((CheckBox) findViewById(R.id.autoAcceptEnabled)).setText(es ? "Activar aceptación automática" : "Enable Auto-Accept");
@@ -297,6 +305,9 @@ public class MainActivity extends Activity {
                 prefs.getBoolean(Prefs.REJECT_MAX_DURATION_ENABLED, false),
                 prefs.getInt(Prefs.REJECT_MAX_DURATION_HOURS, 1),
                 prefs.getInt(Prefs.REJECT_MAX_DURATION_MINUTES, 0));
+        HourlyRatePolicy.configure(
+                prefs.getBoolean(Prefs.REJECT_MIN_HOURLY_ENABLED, false),
+                prefs.getFloat(Prefs.REJECT_MIN_HOURLY, 20.00f));
     }
 
     private void bindNumber(EditText editText, String key, float min, float max) {
