@@ -63,6 +63,7 @@ final class Prefs {
     static final String GAS_PRICE = "gas_price";
     static final String RECENT_OFFER_RECORD = "recent_offer_record";
     static final String RECENT_OFFER_AT = "recent_offer_at";
+    static final String RECENT_OFFER_RECORDS = "recent_offer_records_v2";
     static final String PENDING_ACCEPTED_ORDER = "pending_accepted_order";
     static final String PENDING_ACCEPTED_AT = "pending_accepted_at";
     static final String CONFIRMED_ORDER_RECORDS = "confirmed_order_records";
