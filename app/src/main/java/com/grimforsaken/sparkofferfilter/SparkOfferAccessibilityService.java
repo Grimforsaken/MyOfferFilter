@@ -51,6 +51,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     private final Runnable retry300 = () -> evaluateCurrentOffer(null, "retry +300ms");
     private final Runnable retry650 = () -> evaluateCurrentOffer(null, "retry +650ms");
     private final Runnable retry1400 = () -> evaluateCurrentOffer(null, "retry +1400ms");
+    private final Runnable acceptedTrack150 = () -> observeAcceptedOrderTracking(null);
+    private final Runnable acceptedTrack600 = () -> observeAcceptedOrderTracking(null);
+    private final Runnable acceptedTrack1800 = () -> observeAcceptedOrderTracking(null);
     private final Runnable unknownLocationRetry = () -> {
         scheduledUnknownLocationKey = "";
         evaluateCurrentOffer(null, "unknown location +2s recheck");
@@ -77,6 +80,12 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         if (packageName == null || !SPARK_PACKAGE.contentEquals(packageName)) return;
 
         observeAcceptedOrderTracking(event.getSource());
+        handler.removeCallbacks(acceptedTrack150);
+        handler.removeCallbacks(acceptedTrack600);
+        handler.removeCallbacks(acceptedTrack1800);
+        handler.postDelayed(acceptedTrack150, 150L);
+        handler.postDelayed(acceptedTrack600, 600L);
+        handler.postDelayed(acceptedTrack1800, 1800L);
 
         if (!prefs.getBoolean(Prefs.MASTER_ENABLED, false)) return;
 
@@ -436,42 +445,60 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         if (prefs == null) return;
         long now = System.currentTimeMillis();
         List<AccessibilityNodeInfo> roots = collectSparkCandidateRoots(eventSource);
+        if (roots.isEmpty()) return;
+
+        List<String> texts = new ArrayList<>();
         for (AccessibilityNodeInfo root : roots) {
             String text = collectAllText(root);
             if (text == null || text.trim().isEmpty()) continue;
+            texts.add(text);
 
+            // First pass: keep every complete Shopping offer candidate we can see.
+            // This prevents a partially loaded accepted-trip screen from racing ahead
+            // of the offer metrics needed for earnings tracking.
+            if (!AcceptedShoppingScreenDetector.isConfirmedShoppingTripScreen(text)) {
+                String city = OfferCityDetector.detect(text);
+                AcceptedOrderStore.rememberCandidate(prefs, text, city, now);
+            }
+        }
+
+        // Second pass: only confirm after candidate collection has completed.
+        for (String text : texts) {
             AcceptedOrderStore.Confirmation confirmation =
                     AcceptedOrderStore.confirmFromShoppingTripScreen(prefs, text, now);
-            if (confirmation.screenConfirmed) {
-                if (!confirmation.duplicate) {
-                    if (confirmation.record != null) {
-                        OrderRecord r = confirmation.record;
-                        String cityLabel = LanguageText.isSpanish(prefs) ? "Ciudad: " : "City: ";
-                        String summary = cityLabel + (r.city.isEmpty() ? "Unknown" : r.city)
-                                + "\n" + String.format(Locale.US,
-                                "$%.2f, %.1f mi, %d min, $%.2f/mi, $%.2f/hr.",
-                                r.pay, r.miles, r.minutes, r.dollarsPerMile(), r.dollarsPerHour())
-                                + (r.store.isEmpty() ? "" : " " + r.store + ".")
-                                + (r.tripId.isEmpty() ? "" : " Trip " + r.tripId + ".")
-                                + (r.gasPrice > 0.0
-                                ? String.format(Locale.US,
-                                " Gas $%.2f/gal @ 35 MPG: $%.2f; after fuel $%.2f.",
-                                r.gasPrice, r.fuelCostAt35Mpg(), r.afterFuel())
-                                : " Gas price was not set for this order.");
-                        OfferHistory.addAccepted(prefs, timestamp() + "\n" + summary);
-                        writeDecision("CONFIRMED ACCEPTED SHOPPING ORDER from the active Stop / CONFIRM ARRIVAL screen. " + summary);
-                    } else {
-                        writeDecision("CONFIRMED ACCEPTED SHOPPING ORDER from the active Stop / CONFIRM ARRIVAL screen, but no matching recent offer metrics were available to add to Earnings Comparison.");
-                    }
-                    writeDiagnostic(Prefs.LAST_SCAN_STATUS,
-                            timestamp() + " — Accepted Shopping order confirmed by active trip screen.");
-                    writeDiagnostic(Prefs.LAST_CAPTURE, truncate(text, 3500));
-                }
+            if (!confirmation.screenConfirmed) continue;
+
+            if (confirmation.duplicate) {
                 return;
             }
 
-            String city = OfferCityDetector.detect(text);
-            AcceptedOrderStore.rememberCandidate(prefs, text, city, now);
+            if (confirmation.record == null) {
+                writeDecision("ACCEPTED SHOPPING TRIP screen detected, but earnings metrics are not complete yet. Safe Driver will keep retrying instead of marking the trip finished.");
+                writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                        timestamp() + " — Accepted Shopping trip detected; waiting for matching pay/miles/time before saving earnings.");
+                writeDiagnostic(Prefs.LAST_CAPTURE, truncate(text, 3500));
+                continue;
+            }
+
+            OrderRecord r = confirmation.record;
+            String cityLabel = LanguageText.isSpanish(prefs) ? "Ciudad: " : "City: ";
+            String summary = cityLabel + (r.city.isEmpty() ? "Unknown" : r.city)
+                    + "\n" + String.format(Locale.US,
+                    "$%.2f, %.1f mi, %d min, $%.2f/mi, $%.2f/hr.",
+                    r.pay, r.miles, r.minutes, r.dollarsPerMile(), r.dollarsPerHour())
+                    + (r.store.isEmpty() ? "" : " " + r.store + ".")
+                    + (r.tripId.isEmpty() ? "" : " Trip " + r.tripId + ".")
+                    + (r.gasPrice > 0.0
+                    ? String.format(Locale.US,
+                    " Gas $%.2f/gal @ 35 MPG: $%.2f; after fuel $%.2f.",
+                    r.gasPrice, r.fuelCostAt35Mpg(), r.afterFuel())
+                    : " Gas price was not set for this order.");
+            OfferHistory.addAccepted(prefs, timestamp() + "\n" + summary);
+            writeDecision("CONFIRMED ACCEPTED SHOPPING ORDER from the active Stop / CONFIRM ARRIVAL screen. " + summary);
+            writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                    timestamp() + " — Accepted Shopping order saved to Earnings Comparison.");
+            writeDiagnostic(Prefs.LAST_CAPTURE, truncate(text, 3500));
+            return;
         }
     }
 
