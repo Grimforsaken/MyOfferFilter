@@ -8,8 +8,9 @@ import java.util.List;
 import java.util.Set;
 
 final class AcceptedOrderStore {
-    private static final long RECENT_CANDIDATE_MAX_AGE_MS = 10L * 60L * 1000L;
+    private static final long RECENT_CANDIDATE_MAX_AGE_MS = 30L * 60L * 1000L;
     private static final long PENDING_ACCEPT_MAX_AGE_MS = 2L * 60L * 60L * 1000L;
+    private static final int MAX_RECENT_CANDIDATES = 30;
     private static final int MAX_RECORDS = 5000;
 
     private AcceptedOrderStore() {}
@@ -17,6 +18,7 @@ final class AcceptedOrderStore {
     static void rememberCandidate(SharedPreferences prefs, String offerText, String city, long now) {
         OrderRecord candidate = fromOfferText(prefs, offerText, city, now, "");
         if (candidate == null) return;
+        appendRecentCandidate(prefs, candidate, now);
         prefs.edit()
                 .putString(Prefs.RECENT_OFFER_RECORD, candidate.serialize())
                 .putLong(Prefs.RECENT_OFFER_AT, now)
@@ -26,6 +28,7 @@ final class AcceptedOrderStore {
     static void noteAutoAccepted(SharedPreferences prefs, String offerText, String city, long now) {
         OrderRecord candidate = fromOfferText(prefs, offerText, city, now, "");
         if (candidate == null) return;
+        appendRecentCandidate(prefs, candidate, now);
         prefs.edit()
                 .putString(Prefs.PENDING_ACCEPTED_ORDER, candidate.serialize())
                 .putLong(Prefs.PENDING_ACCEPTED_AT, now)
@@ -53,6 +56,10 @@ final class AcceptedOrderStore {
                 prefs.getLong(Prefs.PENDING_ACCEPTED_AT, 0L),
                 now, PENDING_ACCEPT_MAX_AGE_MS);
         if (source != null && !matches(source, screenStoreNumber, screenCity)) source = null;
+
+        if (source == null) {
+            source = findRecentMatchingCandidate(prefs, screenStoreNumber, screenCity, now);
+        }
 
         if (source == null) {
             source = recentRecord(
@@ -118,6 +125,56 @@ final class AcceptedOrderStore {
         return new OrderRecord(now, pay, miles, minutes,
                 prefs.getFloat(Prefs.GAS_PRICE, 0.0f),
                 city == null ? "" : city, store, tripId);
+    }
+
+    private static void appendRecentCandidate(SharedPreferences prefs, OrderRecord candidate, long now) {
+        List<OrderRecord> candidates = recentCandidates(prefs, now);
+        String identity = candidateIdentity(candidate);
+        List<OrderRecord> updated = new ArrayList<>();
+        updated.add(candidate);
+        for (OrderRecord existing : candidates) {
+            if (updated.size() >= MAX_RECENT_CANDIDATES) break;
+            if (candidateIdentity(existing).equals(identity)) continue;
+            updated.add(existing);
+        }
+
+        StringBuilder out = new StringBuilder();
+        for (OrderRecord record : updated) {
+            if (out.length() > 0) out.append('\n');
+            out.append(record.serialize());
+        }
+        prefs.edit().putString(Prefs.RECENT_OFFER_RECORDS, out.toString()).apply();
+    }
+
+    private static List<OrderRecord> recentCandidates(SharedPreferences prefs, long now) {
+        String raw = prefs.getString(Prefs.RECENT_OFFER_RECORDS, "");
+        if (raw == null || raw.trim().isEmpty()) return Collections.emptyList();
+        List<OrderRecord> out = new ArrayList<>();
+        for (String line : raw.split("\\n")) {
+            OrderRecord record = OrderRecord.parse(line);
+            if (record == null) continue;
+            long age = now - record.timestampMs;
+            if (age < 0L || age > RECENT_CANDIDATE_MAX_AGE_MS) continue;
+            out.add(record);
+            if (out.size() >= MAX_RECENT_CANDIDATES) break;
+        }
+        return out;
+    }
+
+    private static OrderRecord findRecentMatchingCandidate(
+            SharedPreferences prefs, String screenStoreNumber, String screenCity, long now) {
+        for (OrderRecord candidate : recentCandidates(prefs, now)) {
+            if (matches(candidate, screenStoreNumber, screenCity)) return candidate;
+        }
+        return null;
+    }
+
+    private static String candidateIdentity(OrderRecord record) {
+        if (record == null) return "";
+        String storeNumber = AcceptedShoppingScreenDetector.storeNumber(record.store);
+        return String.format(java.util.Locale.US, "%.2f|%.3f|%d|%s|%s",
+                record.pay, record.miles, record.minutes, storeNumber,
+                record.city == null ? "" : record.city.toUpperCase(java.util.Locale.US));
     }
 
     private static OrderRecord recentRecord(String serialized, long at, long now, long maxAge) {
