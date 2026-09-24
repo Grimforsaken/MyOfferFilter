@@ -34,6 +34,7 @@ jobs:
             app/src/main/java/com/grimforsaken/sparkofferfilter/HourlyRatePolicy.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/AcceptedShoppingScreenDetector.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OrderRecord.java \
+            app/src/main/java/com/grimforsaken/sparkofferfilter/AcceptedOrderIdentity.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OrderAnalytics.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferEvaluator.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/OfferEvaluatorTest.java \
@@ -47,6 +48,7 @@ jobs:
             app/src/test/java/com/grimforsaken/sparkofferfilter/TripDurationRejectTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/HourlyRateRejectTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/AcceptedShoppingScreenDetectorTest.java \
+            app/src/test/java/com/grimforsaken/sparkofferfilter/AcceptedOrderIdentityTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/OrderAnalyticsTest.java
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.OfferEvaluatorTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.SafetyAndLocationTest
@@ -59,6 +61,7 @@ jobs:
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.TripDurationRejectTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.HourlyRateRejectTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.AcceptedShoppingScreenDetectorTest
+          java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.AcceptedOrderIdentityTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.OrderAnalyticsTest
 
       - name: Set up Android SDK
