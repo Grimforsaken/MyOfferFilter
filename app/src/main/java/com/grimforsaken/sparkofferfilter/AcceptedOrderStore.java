@@ -40,14 +40,13 @@ final class AcceptedOrderStore {
         }
 
         String tripId = AcceptedShoppingScreenDetector.tripId(screenText);
-        String lastTripId = prefs.getString(Prefs.LAST_CONFIRMED_TRIP_ID, "");
-        if (!tripId.isEmpty() && tripId.equals(lastTripId)) {
-            return Confirmation.duplicate();
-        }
-
         String screenStore = AcceptedShoppingScreenDetector.storeLabel(screenText);
         String screenStoreNumber = AcceptedShoppingScreenDetector.storeNumber(screenText);
         String screenCity = OfferCityDetector.detect(screenText);
+
+        if (AcceptedOrderIdentity.isDuplicate(records(prefs), tripId, screenStoreNumber, now)) {
+            return Confirmation.duplicate();
+        }
 
         OrderRecord source = recentRecord(
                 prefs.getString(Prefs.PENDING_ACCEPTED_ORDER, ""),
@@ -63,12 +62,6 @@ final class AcceptedOrderStore {
             if (source != null && !matches(source, screenStoreNumber, screenCity)) source = null;
         }
 
-        SharedPreferences.Editor edit = prefs.edit()
-                .remove(Prefs.PENDING_ACCEPTED_ORDER)
-                .remove(Prefs.PENDING_ACCEPTED_AT);
-        if (!tripId.isEmpty()) edit.putString(Prefs.LAST_CONFIRMED_TRIP_ID, tripId);
-        edit.apply();
-
         if (source == null) {
             return Confirmation.confirmedWithoutMetrics(tripId, screenStore, screenCity);
         }
@@ -80,6 +73,10 @@ final class AcceptedOrderStore {
                 now, source.pay, source.miles, source.minutes, gasPrice,
                 city, store, tripId);
         appendRecord(prefs, confirmed);
+        prefs.edit()
+                .remove(Prefs.PENDING_ACCEPTED_ORDER)
+                .remove(Prefs.PENDING_ACCEPTED_AT)
+                .apply();
         return Confirmation.confirmed(confirmed);
     }
 
