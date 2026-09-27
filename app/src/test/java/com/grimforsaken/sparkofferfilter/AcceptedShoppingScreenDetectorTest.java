@@ -9,6 +9,11 @@ public final class AcceptedShoppingScreenDetectorTest {
                 "active shopping stop screen must confirm an accepted shopping order");
         require("8466".equals(AcceptedShoppingScreenDetector.tripId(screen)), "trip id must parse");
         require("838".equals(AcceptedShoppingScreenDetector.storeNumber(screen)), "store number must parse");
+        String relaxed = "shopping\nWalmart SAND SPRINGS #838\nCONTACT\nNAVIGATE\nCONFIRM ARRIVAL\nTrip #8466";
+        require(AcceptedShoppingScreenDetector.isConfirmedShoppingTripScreen(relaxed),
+                "Shopping + store + CONFIRM ARRIVAL must confirm even when Spark does not expose the Stop header");
+        require("8466".equals(AcceptedShoppingScreenDetector.tripId(relaxed)),
+                "fallback Trip number must parse without the Stop header");
         require(!AcceptedShoppingScreenDetector.isConfirmedShoppingTripScreen(
                 "$32.14\n3 stops • 3.9 miles • 54 mins\nShopping\nWalmart TULSA #5093\nREJECT\nACCEPT"),
                 "ordinary offer card must not count as accepted");
