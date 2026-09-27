@@ -448,18 +448,21 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         if (roots.isEmpty()) return;
 
         List<String> texts = new ArrayList<>();
+        Set<String> offerCardTexts = new HashSet<>();
         for (AccessibilityNodeInfo root : roots) {
             String text = collectAllText(root);
             if (text == null || text.trim().isEmpty()) continue;
             texts.add(text);
 
-            // First pass: keep every complete Shopping offer candidate we can see.
-            // This prevents a partially loaded accepted-trip screen from racing ahead
-            // of the offer metrics needed for earnings tracking.
-            if (!AcceptedShoppingScreenDetector.isConfirmedShoppingTripScreen(text)) {
-                String city = OfferCityDetector.detect(text);
-                AcceptedOrderStore.rememberCandidate(prefs, text, city, now);
-            }
+            // Capture each visible Shopping offer card independently. Spark often shows
+            // several offers in one window, so using the whole window can combine one
+            // card's pay/time with another card's store.
+            collectEarningsOfferCards(root, offerCardTexts);
+        }
+
+        for (String offerText : offerCardTexts) {
+            String city = OfferCityDetector.detect(offerText);
+            AcceptedOrderStore.rememberCandidate(prefs, offerText, city, now);
         }
 
         // Second pass: only confirm after candidate collection has completed.
@@ -500,6 +503,44 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             writeDiagnostic(Prefs.LAST_CAPTURE, truncate(text, 3500));
             return;
         }
+    }
+
+    private void collectEarningsOfferCards(AccessibilityNodeInfo root, Set<String> out) {
+        if (root == null || out == null) return;
+        ArrayDeque<AccessibilityNodeInfo> queue = new ArrayDeque<>();
+        queue.add(root);
+
+        while (!queue.isEmpty()) {
+            AccessibilityNodeInfo node = queue.removeFirst();
+            String label = nodeLabel(node).trim().toLowerCase(Locale.US).replaceAll("\\s+", " ");
+            if (label.equals("accept") || label.equals("accept offer") || label.equals("accept trip")) {
+                AccessibilityNodeInfo card = findSmallestCompleteOfferCard(node);
+                if (card != null) {
+                    String cardText = collectAllText(card);
+                    if (EarningsOfferCandidate.isCompleteShoppingOfferCard(cardText)) {
+                        out.add(cardText);
+                    }
+                }
+            }
+            for (int i = 0; i < node.getChildCount(); i++) {
+                AccessibilityNodeInfo child = node.getChild(i);
+                if (child != null) queue.add(child);
+            }
+        }
+    }
+
+    private AccessibilityNodeInfo findSmallestCompleteOfferCard(AccessibilityNodeInfo acceptNode) {
+        AccessibilityNodeInfo current = acceptNode;
+        AccessibilityNodeInfo best = null;
+        for (int depth = 0; current != null && depth < 12; depth++) {
+            String text = collectAllText(current);
+            if (EarningsOfferCandidate.isCompleteShoppingOfferCard(text)) {
+                best = current;
+                break;
+            }
+            current = current.getParent();
+        }
+        return best;
     }
 
     private void scheduleUnknownLocationRetry(String offerKey, long now) {
