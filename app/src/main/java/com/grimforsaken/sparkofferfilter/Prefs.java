@@ -56,6 +56,7 @@ final class Prefs {
     static final String LAST_SPARK_EVENT = "last_spark_event";
     static final String LAST_SCAN_STATUS = "last_scan_status";
     static final String LAST_CAPTURE = "last_capture";
+    static final String LAST_EARNINGS_STATUS = "last_earnings_status";
 
     static final String HISTORY_REJECTED = "history_rejected";
     static final String HISTORY_ACCEPTED = "history_accepted";
