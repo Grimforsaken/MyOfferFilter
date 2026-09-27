@@ -185,7 +185,6 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                         decisionGuard.clearRejectCandidate();
                         clearUnknownLocationState();
                         playDecisionChime(false);
-                        OfferHistory.addRejected(prefs, timestamp() + "\n" + summary);
                         writeDecision("REJECTED and confirmed. " + summary);
                     }
                     return;
@@ -352,9 +351,11 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     rejectConfirmationDeadline = now + REJECT_CONFIRMATION_WINDOW_MS;
                     pendingRejectOfferKey = offerKey;
                     pendingRejectSummary = details + " Reason: " + result.reason;
+                    OfferHistory.addRejected(prefs, timestamp() + "\n" + pendingRejectSummary
+                            + "\nAction: Reject selected by Safe Driver.");
                     writeDecision(immediateLocationReject
-                            ? "REJECT selected immediately for unchecked Accepted Location; waiting for Spark confirmation. " + pendingRejectSummary
-                            : "REJECT selected after safety verification; waiting for Spark confirmation. " + pendingRejectSummary);
+                            ? "REJECT selected immediately for unchecked Accepted Location; history logged; waiting for Spark confirmation. " + pendingRejectSummary
+                            : "REJECT selected after safety verification; history logged; waiting for Spark confirmation. " + pendingRejectSummary);
                 }
                 writeDiagnostic(Prefs.LAST_CAPTURE, truncate(currentText, 3500));
                 return;
@@ -399,12 +400,13 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     if ("Unknown".equals(city) && !"Sam's Club".equals(location.location)) city = location.location;
                     String cityLabel = LanguageText.isSpanish(prefs) ? "Ciudad: " : "City: ";
                     String summary = cityLabel + city + "\n" + formatOffer(result) + " Reason: " + result.reason;
+                    OfferHistory.addAccepted(prefs, timestamp() + "\n" + summary
+                            + "\nAction: Accept pressed by Safe Driver.");
                     if (result.hasShopping) {
                         AcceptedOrderStore.noteAutoAccepted(prefs, currentText, city, now);
-                        writeDecision("ACCEPT clicked. Waiting for the active Shopping trip / CONFIRM ARRIVAL screen to confirm the order. Rejections remain locked and this offer is protected. " + summary);
+                        writeDecision("ACCEPT clicked and Accepted history logged immediately. Earnings tracking is now waiting independently for the active Shopping / CONFIRM ARRIVAL screen. Rejections remain locked and this offer is protected. " + summary);
                     } else {
-                        OfferHistory.addAccepted(prefs, timestamp() + "\n" + summary);
-                        writeDecision("ACCEPTED immediately. Rejections locked for 10 seconds and this accepted offer is protected from later rejection. " + summary);
+                        writeDecision("ACCEPTED and history logged immediately. Rejections locked for 10 seconds and this accepted offer is protected from later rejection. " + summary);
                     }
                     writeDiagnostic(Prefs.LAST_SCAN_STATUS, lockoutMessage(now));
                     writeDiagnostic(Prefs.LAST_CAPTURE, truncate(currentText, 3500));
@@ -511,8 +513,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     " Gas $%.2f/gal @ 35 MPG: $%.2f; after fuel $%.2f.",
                     r.gasPrice, r.fuelCostAt35Mpg(), r.afterFuel())
                     : " Gas price was not set for this order.");
-            OfferHistory.addAccepted(prefs, timestamp() + "\n" + summary);
-            writeDecision("CONFIRMED ACCEPTED SHOPPING ORDER from the active Stop / CONFIRM ARRIVAL screen. " + summary);
+            writeDecision("CONFIRMED ACCEPTED SHOPPING ORDER for Earnings Comparison from the active Shopping / CONFIRM ARRIVAL screen. " + summary);
             writeDiagnostic(Prefs.LAST_SCAN_STATUS,
                     timestamp() + " — Accepted Shopping order saved to Earnings Comparison.");
             writeDiagnostic(Prefs.LAST_CAPTURE, truncate(text, 3500));
