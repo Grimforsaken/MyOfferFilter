@@ -403,8 +403,14 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     OfferHistory.addAccepted(prefs, timestamp() + "\n" + summary
                             + "\nAction: Accept pressed by Safe Driver.");
                     if (result.hasShopping) {
-                        AcceptedOrderStore.noteAutoAccepted(prefs, currentText, city, now);
-                        writeDecision("ACCEPT clicked and Accepted history logged immediately. Earnings tracking is now waiting independently for the active Shopping / CONFIRM ARRIVAL screen. Rejections remain locked and this offer is protected. " + summary);
+                        int tripMinutes = TripDurationPolicy.parseTripMinutes(currentText);
+                        String store = AcceptedShoppingScreenDetector.storeLabel(currentText);
+                        boolean storedKnownMetrics = AcceptedOrderStore.noteAutoAccepted(
+                                prefs, result.pay, result.miles, tripMinutes, city, store, now);
+                        if (!storedKnownMetrics) {
+                            AcceptedOrderStore.noteAutoAccepted(prefs, currentText, city, now);
+                        }
+                        writeDecision("ACCEPT clicked and Accepted history logged immediately. Earnings tracking saved the known offer metrics when available and is waiting independently for the active Shopping / CONFIRM ARRIVAL screen. Rejections remain locked and this offer is protected. " + summary);
                     } else {
                         writeDecision("ACCEPTED and history logged immediately. Rejections locked for 10 seconds and this accepted offer is protected from later rejection. " + summary);
                     }
