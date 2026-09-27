@@ -36,6 +36,8 @@ final class Prefs {
     static final String ACCEPT_MIN_PAY = "accept_min_pay";
     static final String ACCEPT_MIN_RATE_ENABLED = "accept_min_rate_enabled";
     static final String ACCEPT_MIN_RATE = "accept_min_rate";
+    static final String ACCEPT_MIN_HOURLY_ENABLED = "accept_min_hourly_enabled";
+    static final String ACCEPT_MIN_HOURLY = "accept_min_hourly";
     static final String ACCEPT_MAX_MILES_ENABLED = "accept_max_miles_enabled";
     static final String ACCEPT_MAX_MILES = "accept_max_miles";
     static final String ACCEPT_SHOPPING_ENABLED = "accept_shopping_enabled";

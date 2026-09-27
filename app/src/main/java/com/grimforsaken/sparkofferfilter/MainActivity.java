@@ -81,6 +81,8 @@ public class MainActivity extends Activity {
         EditText acceptMinPay = findViewById(R.id.acceptMinPay);
         CheckBox acceptMinRateEnabled = findViewById(R.id.acceptMinRateEnabled);
         EditText acceptMinRate = findViewById(R.id.acceptMinRate);
+        CheckBox acceptMinHourlyEnabled = findViewById(R.id.acceptMinHourlyEnabled);
+        EditText acceptMinHourly = findViewById(R.id.acceptMinHourly);
         CheckBox acceptMaxMilesEnabled = findViewById(R.id.acceptMaxMilesEnabled);
         EditText acceptMaxMiles = findViewById(R.id.acceptMaxMiles);
         CheckBox acceptShoppingEnabled = findViewById(R.id.acceptShoppingEnabled);
@@ -128,6 +130,8 @@ public class MainActivity extends Activity {
         acceptMinPay.setText(format(prefs.getFloat(Prefs.ACCEPT_MIN_PAY, 20.00f), 2));
         acceptMinRateEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_MIN_RATE_ENABLED, false));
         acceptMinRate.setText(format(prefs.getFloat(Prefs.ACCEPT_MIN_RATE, 1.25f), 2));
+        acceptMinHourlyEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_MIN_HOURLY_ENABLED, false));
+        acceptMinHourly.setText(format(prefs.getFloat(Prefs.ACCEPT_MIN_HOURLY, 20.00f), 2));
         acceptMaxMilesEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_MAX_MILES_ENABLED, false));
         acceptMaxMiles.setText(format(prefs.getFloat(Prefs.ACCEPT_MAX_MILES, 10.0f), 1));
         acceptShoppingEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_SHOPPING_ENABLED, false));
@@ -170,6 +174,8 @@ public class MainActivity extends Activity {
         bindNumber(acceptMinPay, Prefs.ACCEPT_MIN_PAY, 0.01f, 10000.0f);
         bindCheck(acceptMinRateEnabled, Prefs.ACCEPT_MIN_RATE_ENABLED);
         bindNumber(acceptMinRate, Prefs.ACCEPT_MIN_RATE, 0.01f, 100.0f);
+        bindCheck(acceptMinHourlyEnabled, Prefs.ACCEPT_MIN_HOURLY_ENABLED);
+        bindNumber(acceptMinHourly, Prefs.ACCEPT_MIN_HOURLY, 0.01f, 1000.0f);
         bindCheck(acceptMaxMilesEnabled, Prefs.ACCEPT_MAX_MILES_ENABLED);
         bindNumber(acceptMaxMiles, Prefs.ACCEPT_MAX_MILES, 0.1f, 1000.0f);
         bindCheck(acceptShoppingEnabled, Prefs.ACCEPT_SHOPPING_ENABLED);
@@ -265,6 +271,8 @@ public class MainActivity extends Activity {
         ((TextView) findViewById(R.id.acceptMinPayLabel)).setText(es ? "Monto mínimo $:  " : "Minimum order $:  ");
         ((CheckBox) findViewById(R.id.acceptMinRateEnabled)).setText(es ? "Requerir un mínimo de dólares por milla" : "Require a minimum dollars-per-mile amount");
         ((TextView) findViewById(R.id.acceptMinRateLabel)).setText(es ? "Mínimo $ / milla:  " : "Minimum $ / mile:  ");
+        ((CheckBox) findViewById(R.id.acceptMinHourlyEnabled)).setText(es ? "Requerir un mínimo de dólares por hora" : "Require a minimum dollars-per-hour amount");
+        ((TextView) findViewById(R.id.acceptMinHourlyLabel)).setText(es ? "Mínimo $ / hora:  " : "Minimum $ / hour:  ");
         ((CheckBox) findViewById(R.id.acceptMaxMilesEnabled)).setText(es ? "Requerir un máximo de millas" : "Require a maximum number of miles");
         ((Button) findViewById(R.id.openAnalytics)).setText(es ? "Comparación de ganancias por orden" : "Order Earnings Comparison");
         ((TextView) findViewById(R.id.acceptMaxMilesLabel)).setText(es ? "Máximo de millas:  " : "Maximum miles:  ");

@@ -8,6 +8,9 @@ public final class OfferEvaluatorTest {
         shouldRejectOverSelectedMaximumMiles();
         shouldKeepOrderAtSelectedMaximumMiles();
         shouldAutoAcceptWhenAllEnabledRulesPass();
+        shouldAutoAcceptAtMinimumHourly();
+        shouldNotAutoAcceptBelowMinimumHourly();
+        shouldNotAutoAcceptWhenHourlyTripTimeMissing();
         shouldNotAutoAcceptAboveAcceptMaxMiles();
         shouldRequireShoppingForAutoAccept();
         shouldRequireNoShoppingForAutoAccept();
@@ -99,6 +102,53 @@ public final class OfferEvaluatorTest {
                 true, 15.00,
                 true, true, 25, true, 2.00, true, 15);
         require(!r.shouldReject && r.shouldAccept, "expected auto-accept");
+    }
+
+    private static void shouldAutoAcceptAtMinimumHourly() {
+        OfferEvaluator.Result r = OfferEvaluator.evaluate(
+                "Estimated earnings $30.00\n1 stop • 10 miles • 60 min\nShopping\nAccept\nReject",
+                false, false, 1.25,
+                false, 15.00,
+                false, 20.0,
+                true, false, 20.00,
+                true, 2.50,
+                true, 30.00,
+                false, 10.0,
+                false, false);
+        require(!r.shouldReject && r.shouldAccept,
+                "offer exactly at the enabled minimum dollars-per-hour should auto-accept");
+    }
+
+    private static void shouldNotAutoAcceptBelowMinimumHourly() {
+        OfferEvaluator.Result r = OfferEvaluator.evaluate(
+                "Estimated earnings $20.00\n1 stop • 10 miles • 60 min\nShopping\nAccept\nReject",
+                false, false, 1.25,
+                false, 15.00,
+                false, 20.0,
+                true, false, 20.00,
+                false, 1.25,
+                true, 25.00,
+                false, 10.0,
+                false, false);
+        require(!r.shouldReject && !r.shouldAccept
+                        && r.reason.contains("$20.00/hr is below accept minimum $25.00/hr"),
+                "minimum dollars-per-hour should block auto-accept below the threshold");
+    }
+
+    private static void shouldNotAutoAcceptWhenHourlyTripTimeMissing() {
+        OfferEvaluator.Result r = OfferEvaluator.evaluate(
+                "Estimated earnings $30.00\n10 miles\nShopping\nAccept\nReject",
+                false, false, 1.25,
+                false, 15.00,
+                false, 20.0,
+                true, false, 20.00,
+                false, 1.25,
+                true, 25.00,
+                false, 10.0,
+                false, false);
+        require(!r.shouldReject && !r.shouldAccept
+                        && r.reason.contains("Trip time is not readable"),
+                "hourly auto-accept must not guess when trip time is missing");
     }
 
     private static void shouldNotAutoAcceptAboveAcceptMaxMiles() {

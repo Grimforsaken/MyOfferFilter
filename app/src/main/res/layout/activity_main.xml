@@ -111,6 +111,11 @@
             <TextView android:id="@+id/acceptMinRateLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Minimum $ / mile:  " />
             <EditText android:id="@+id/acceptMinRate" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="1.25" android:selectAllOnFocus="true" />
         </LinearLayout>
+        <CheckBox android:id="@+id/acceptMinHourlyEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Require a minimum dollars-per-hour amount" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:id="@+id/acceptMinHourlyLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Minimum $ / hour:  " />
+            <EditText android:id="@+id/acceptMinHourly" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="20.00" android:selectAllOnFocus="true" />
+        </LinearLayout>
         <CheckBox android:id="@+id/acceptMaxMilesEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Require a maximum number of miles" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:id="@+id/acceptMaxMilesLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Maximum miles:  " />

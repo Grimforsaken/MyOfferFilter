@@ -695,6 +695,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 prefs.getFloat(Prefs.ACCEPT_MIN_PAY, 20.00f),
                 prefs.getBoolean(Prefs.ACCEPT_MIN_RATE_ENABLED, false),
                 prefs.getFloat(Prefs.ACCEPT_MIN_RATE, 1.25f),
+                prefs.getBoolean(Prefs.ACCEPT_MIN_HOURLY_ENABLED, false),
+                prefs.getFloat(Prefs.ACCEPT_MIN_HOURLY, 20.00f),
                 prefs.getBoolean(Prefs.ACCEPT_MAX_MILES_ENABLED, false),
                 prefs.getFloat(Prefs.ACCEPT_MAX_MILES, 10.0f),
                 prefs.getBoolean(Prefs.ACCEPT_SHOPPING_ENABLED, false),

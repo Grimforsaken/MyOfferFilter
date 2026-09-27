@@ -53,6 +53,23 @@ public final class OfferEvaluator {
             boolean autoAcceptEnabled, boolean acceptMinPayEnabled, double acceptMinPay,
             boolean acceptMinRateEnabled, double acceptMinRate, boolean acceptMaxMilesEnabled,
             double acceptMaxMiles, boolean acceptShoppingEnabled, boolean acceptNoShoppingEnabled) {
+        return evaluate(visibleText, rejectNoShopping, rejectLowRate, rejectMinimumDollarsPerMile,
+                rejectMinPayEnabled, rejectMinPay, rejectMaxMilesEnabled, rejectMaxMiles,
+                autoAcceptEnabled, acceptMinPayEnabled, acceptMinPay,
+                acceptMinRateEnabled, acceptMinRate,
+                false, 20.00,
+                acceptMaxMilesEnabled, acceptMaxMiles,
+                acceptShoppingEnabled, acceptNoShoppingEnabled);
+    }
+
+    public static Result evaluate(String visibleText, boolean rejectNoShopping, boolean rejectLowRate,
+            double rejectMinimumDollarsPerMile, boolean rejectMinPayEnabled, double rejectMinPay,
+            boolean rejectMaxMilesEnabled, double rejectMaxMiles,
+            boolean autoAcceptEnabled, boolean acceptMinPayEnabled, double acceptMinPay,
+            boolean acceptMinRateEnabled, double acceptMinRate,
+            boolean acceptMinHourlyEnabled, double acceptMinHourly,
+            boolean acceptMaxMilesEnabled, double acceptMaxMiles,
+            boolean acceptShoppingEnabled, boolean acceptNoShoppingEnabled) {
 
         String text = visibleText == null ? "" : visibleText;
         String normalized = normalize(text);
@@ -99,6 +116,7 @@ public final class OfferEvaluator {
         }
 
         double rate = pay / miles;
+        Double hourlyRate = HourlyRatePolicy.calculateDollarsPerHour(pay, text);
         List<String> rejectionReasons = new ArrayList<>();
         if (rejectNoShopping && !hasShopping) rejectionReasons.add("Shopping is not shown");
         if (rejectMinPayEnabled && pay + 1e-9 < rejectMinPay) {
@@ -117,8 +135,8 @@ public final class OfferEvaluator {
                     String.join("; ", rejectionReasons));
         }
 
-        boolean anyAcceptRule = acceptMinPayEnabled || acceptMinRateEnabled || acceptMaxMilesEnabled
-                || acceptShoppingEnabled || acceptNoShoppingEnabled;
+        boolean anyAcceptRule = acceptMinPayEnabled || acceptMinRateEnabled || acceptMinHourlyEnabled
+                || acceptMaxMilesEnabled || acceptShoppingEnabled || acceptNoShoppingEnabled;
         if (!autoAcceptEnabled) {
             return Result.ready(false, false, hasAllowedCity, hasShopping, pay, miles, rate,
                     String.format(Locale.US, "Offer passes reject rules at $%.2f/mi; Auto-Accept is off.", rate));
@@ -134,6 +152,14 @@ public final class OfferEvaluator {
         }
         if (acceptMinRateEnabled && rate + 1e-9 < acceptMinRate) {
             acceptFailures.add(String.format(Locale.US, "$%.2f/mi is below accept minimum $%.2f/mi", rate, acceptMinRate));
+        }
+        if (acceptMinHourlyEnabled) {
+            if (hourlyRate == null) {
+                acceptFailures.add("Trip time is not readable for the minimum $/hr rule");
+            } else if (hourlyRate + 1e-9 < acceptMinHourly) {
+                acceptFailures.add(String.format(Locale.US,
+                        "$%.2f/hr is below accept minimum $%.2f/hr", hourlyRate, acceptMinHourly));
+            }
         }
         if (acceptMaxMilesEnabled && miles - 1e-9 > acceptMaxMiles) {
             acceptFailures.add(String.format(Locale.US, "%.1f mi exceeds maximum %.1f mi", miles, acceptMaxMiles));
