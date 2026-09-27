@@ -37,6 +37,36 @@ final class AcceptedOrderStore {
                 .apply();
     }
 
+    static boolean noteAutoAccepted(
+            SharedPreferences prefs,
+            Double pay,
+            Double miles,
+            int minutes,
+            String city,
+            String store,
+            long now) {
+        if (prefs == null || pay == null || pay <= 0.0
+                || miles == null || miles <= 0.0 || minutes <= 0) {
+            return false;
+        }
+
+        OrderRecord candidate = new OrderRecord(
+                now, pay, miles, minutes,
+                prefs.getFloat(Prefs.GAS_PRICE, 0.0f),
+                city == null ? "" : city,
+                store == null ? "" : store,
+                "");
+
+        appendRecentCandidate(prefs, candidate, now);
+        prefs.edit()
+                .putString(Prefs.PENDING_ACCEPTED_ORDER, candidate.serialize())
+                .putLong(Prefs.PENDING_ACCEPTED_AT, now)
+                .putString(Prefs.RECENT_OFFER_RECORD, candidate.serialize())
+                .putLong(Prefs.RECENT_OFFER_AT, now)
+                .apply();
+        return true;
+    }
+
     static Confirmation confirmFromShoppingTripScreen(SharedPreferences prefs, String screenText, long now) {
         if (!AcceptedShoppingScreenDetector.isConfirmedShoppingTripScreen(screenText)) {
             return Confirmation.notConfirmed();
