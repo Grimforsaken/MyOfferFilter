@@ -448,34 +448,49 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         if (roots.isEmpty()) return;
 
         List<String> texts = new ArrayList<>();
-        Set<String> offerCardTexts = new HashSet<>();
+        boolean capturedIndividualOfferCard = false;
+
         for (AccessibilityNodeInfo root : roots) {
             String text = collectAllText(root);
-            if (text == null || text.trim().isEmpty()) continue;
-            texts.add(text);
+            if (text != null && !text.trim().isEmpty()) texts.add(text);
 
-            // Capture each visible Shopping offer card independently. Spark often shows
-            // several offers in one window, so using the whole window can combine one
-            // card's pay/time with another card's store.
-            collectEarningsOfferCards(root, offerCardTexts);
+            // Prefer per-card capture. Spark commonly renders several offer cards in
+            // one accessibility window; parsing the whole window can mix one card's
+            // pay/miles with a different Walmart store.
+            if (!AcceptedShoppingScreenDetector.isConfirmedShoppingTripScreen(text)) {
+                if (rememberIndividualShoppingOfferCards(root, now)) {
+                    capturedIndividualOfferCard = true;
+                }
+            }
         }
 
-        for (String offerText : offerCardTexts) {
-            String city = OfferCityDetector.detect(offerText);
-            AcceptedOrderStore.rememberCandidate(prefs, offerText, city, now);
+        // Fallback for Spark layouts where the ACCEPT control is not exposed as an
+        // individual node. Only use whole-window text when no card-specific capture
+        // was possible.
+        if (!capturedIndividualOfferCard) {
+            for (String text : texts) {
+                if (AcceptedShoppingScreenDetector.isConfirmedShoppingTripScreen(text)) continue;
+                String city = OfferCityDetector.detect(text);
+                AcceptedOrderStore.rememberCandidate(prefs, text, city, now);
+            }
         }
 
-        // Second pass: only confirm after candidate collection has completed.
+        // Confirm only after all candidate cards have been collected.
         for (String text : texts) {
             AcceptedOrderStore.Confirmation confirmation =
                     AcceptedOrderStore.confirmFromShoppingTripScreen(prefs, text, now);
             if (!confirmation.screenConfirmed) continue;
 
             if (confirmation.duplicate) {
+                prefs.edit().putString(Prefs.LAST_EARNINGS_STATUS,
+                        timestamp() + " — This accepted Shopping trip is already saved.").apply();
                 return;
             }
 
             if (confirmation.record == null) {
+                String status = timestamp()
+                        + " — Accepted Shopping trip detected, but Safe Driver is still waiting for the matching offer card's pay, miles, and trip time.";
+                prefs.edit().putString(Prefs.LAST_EARNINGS_STATUS, status).apply();
                 writeDecision("ACCEPTED SHOPPING TRIP screen detected, but earnings metrics are not complete yet. Safe Driver will keep retrying instead of marking the trip finished.");
                 writeDiagnostic(Prefs.LAST_SCAN_STATUS,
                         timestamp() + " — Accepted Shopping trip detected; waiting for matching pay/miles/time before saving earnings.");
@@ -501,46 +516,66 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             writeDiagnostic(Prefs.LAST_SCAN_STATUS,
                     timestamp() + " — Accepted Shopping order saved to Earnings Comparison.");
             writeDiagnostic(Prefs.LAST_CAPTURE, truncate(text, 3500));
+            prefs.edit().putString(Prefs.LAST_EARNINGS_STATUS,
+                    timestamp() + " — Saved"
+                            + (r.tripId.isEmpty() ? " accepted Shopping order" : " Trip " + r.tripId)
+                            + ": " + String.format(Locale.US, "$%.2f, %.1f mi, $%.2f/mi, $%.2f/hr",
+                            r.pay, r.miles, r.dollarsPerMile(), r.dollarsPerHour()))
+                    .apply();
             return;
         }
     }
 
-    private void collectEarningsOfferCards(AccessibilityNodeInfo root, Set<String> out) {
-        if (root == null || out == null) return;
+    private boolean rememberIndividualShoppingOfferCards(AccessibilityNodeInfo root, long now) {
+        if (root == null) return false;
         ArrayDeque<AccessibilityNodeInfo> queue = new ArrayDeque<>();
         queue.add(root);
+        boolean captured = false;
+        int acceptControlsSeen = 0;
 
-        while (!queue.isEmpty()) {
+        while (!queue.isEmpty() && acceptControlsSeen < 50) {
             AccessibilityNodeInfo node = queue.removeFirst();
             String label = nodeLabel(node).trim().toLowerCase(Locale.US).replaceAll("\\s+", " ");
             if (label.equals("accept") || label.equals("accept offer") || label.equals("accept trip")) {
-                AccessibilityNodeInfo card = findSmallestCompleteOfferCard(node);
-                if (card != null) {
-                    String cardText = collectAllText(card);
-                    if (EarningsOfferCandidate.isCompleteShoppingOfferCard(cardText)) {
-                        out.add(cardText);
-                    }
+                acceptControlsSeen++;
+                String cardText = smallestCompleteShoppingOfferAncestor(node);
+                if (!cardText.isEmpty()) {
+                    String city = OfferCityDetector.detect(cardText);
+                    AcceptedOrderStore.rememberCandidate(prefs, cardText, city, now);
+                    captured = true;
                 }
             }
+
             for (int i = 0; i < node.getChildCount(); i++) {
                 AccessibilityNodeInfo child = node.getChild(i);
                 if (child != null) queue.add(child);
             }
         }
+        return captured;
     }
 
-    private AccessibilityNodeInfo findSmallestCompleteOfferCard(AccessibilityNodeInfo acceptNode) {
+    private String smallestCompleteShoppingOfferAncestor(AccessibilityNodeInfo acceptNode) {
         AccessibilityNodeInfo current = acceptNode;
-        AccessibilityNodeInfo best = null;
+        String fallback = "";
         for (int depth = 0; current != null && depth < 12; depth++) {
             String text = collectAllText(current);
-            if (EarningsOfferCandidate.isCompleteShoppingOfferCard(text)) {
-                best = current;
-                break;
+            String normalized = OfferEvaluator.normalize(text);
+            boolean shopping = normalized.contains("SHOPPING")
+                    || normalized.contains("SHOP & DELIVER")
+                    || normalized.contains("SHOP AND DELIVER");
+            Double pay = OfferEvaluator.parseBestPay(text);
+            Double miles = OfferEvaluator.parseMiles(text);
+            int minutes = TripDurationPolicy.parseTripMinutes(text);
+
+            if (shopping && pay != null && pay > 0.0
+                    && miles != null && miles > 0.0 && minutes > 0) {
+                fallback = text;
+                String store = AcceptedShoppingScreenDetector.storeLabel(text);
+                if (!store.isEmpty()) return text;
             }
             current = current.getParent();
         }
-        return best;
+        return fallback;
     }
 
     private void scheduleUnknownLocationRetry(String offerKey, long now) {
