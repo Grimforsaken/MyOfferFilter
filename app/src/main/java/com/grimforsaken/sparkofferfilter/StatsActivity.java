@@ -38,6 +38,7 @@ public class StatsActivity extends Activity {
     private TextView title;
     private TextView description;
     private TextView gasHelp;
+    private TextView earningsTrackerStatus;
     private LinearLayout ordersList;
     private LinearLayout dayList;
     private LinearLayout weekList;
@@ -58,6 +59,7 @@ public class StatsActivity extends Activity {
         title = findViewById(R.id.statsTitle);
         description = findViewById(R.id.statsDescription);
         gasHelp = findViewById(R.id.gasHelp);
+        earningsTrackerStatus = findViewById(R.id.earningsTrackerStatus);
         gasPrice = findViewById(R.id.gasPrice);
         ordersList = findViewById(R.id.ordersList);
         dayList = findViewById(R.id.dayList);
@@ -124,6 +126,13 @@ public class StatsActivity extends Activity {
         gasHelp.setText(es
                 ? "Precio actual de gasolina ($/gal). Este precio se mantiene para los días futuros hasta que lo cambies y se guarda con cada orden confirmada."
                 : "Current gas price ($/gal). This carries forward day by day until you change it and is saved with each confirmed order.");
+        String tracker = prefs.getString(Prefs.LAST_EARNINGS_STATUS, "");
+        if (tracker == null || tracker.trim().isEmpty()) {
+            tracker = es
+                    ? "Seguimiento de ganancias: esperando una orden de Compras aceptada."
+                    : "Earnings tracker: waiting for an accepted Shopping order.";
+        }
+        earningsTrackerStatus.setText(tracker);
         editOrdersButton.setText(editMode ? (es ? "Cancelar" : "Cancel") : (es ? "Editar" : "Edit"));
         deleteSelectedButton.setText("🗑");
         deleteSelectedButton.setContentDescription(es ? "Eliminar órdenes seleccionadas" : "Delete selected orders");
