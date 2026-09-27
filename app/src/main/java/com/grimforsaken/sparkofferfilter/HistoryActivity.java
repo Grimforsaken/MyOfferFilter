@@ -51,8 +51,8 @@ public class HistoryActivity extends Activity {
         }
         if (historyDescription != null) {
             historyDescription.setText(es
-                    ? "Las aceptaciones automáticas en vivo se registran cuando se pulsa Aceptar. Los rechazos se registran solo después de pulsar la segunda confirmación RECHAZAR OFERTA."
-                    : "Live automatic accepts are logged when Accept is pressed. Rejections are logged only after the second REJECT OFFER confirmation is pressed.");
+                    ? "Las aceptaciones automáticas en vivo se registran cuando se pulsa Aceptar. Los rechazos se registran cuando Safe Driver selecciona Rechazar; la confirmación de Spark se rastrea por separado."
+                    : "Live automatic accepts are logged when Accept is pressed. Rejections are logged when Safe Driver selects Reject; Spark confirmation is tracked separately.");
         }
 
         if (tabHost.getTabWidget() != null && tabHost.getTabWidget().getTabCount() >= 2) {

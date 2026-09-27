@@ -34,6 +34,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     private final ActionSafetyGuard safetyGuard = new ActionSafetyGuard();
     private final OfferDecisionGuard decisionGuard = new OfferDecisionGuard();
     private final UnknownLocationGuard unknownLocationGuard = new UnknownLocationGuard();
+    private final DayRolloverGuard dayRolloverGuard = new DayRolloverGuard();
     private SharedPreferences prefs;
     private ToneGenerator toneGenerator;
     private String latestEventText = "";
@@ -62,6 +63,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     @Override public void onServiceConnected() {
         super.onServiceConnected();
         prefs = getSharedPreferences(Prefs.NAME, MODE_PRIVATE);
+        dayRolloverGuard.initialize(System.currentTimeMillis());
         clearPendingRejectConfirmation();
         safetyGuard.clear();
         decisionGuard.clear();
@@ -79,6 +81,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         CharSequence packageName = event.getPackageName();
         if (packageName == null || !SPARK_PACKAGE.contentEquals(packageName)) return;
 
+        handleCalendarDayRollover(System.currentTimeMillis());
         observeAcceptedOrderTracking(event.getSource());
         handler.removeCallbacks(acceptedTrack150);
         handler.removeCallbacks(acceptedTrack600);
@@ -128,6 +131,34 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
             toneGenerator = null;
         }
         super.onDestroy();
+    }
+
+    private void handleCalendarDayRollover(long now) {
+        if (!dayRolloverGuard.changed(now)) return;
+
+        handler.removeCallbacks(retry40);
+        handler.removeCallbacks(retry120);
+        handler.removeCallbacks(retry300);
+        handler.removeCallbacks(retry650);
+        handler.removeCallbacks(retry1400);
+        handler.removeCallbacks(acceptedTrack150);
+        handler.removeCallbacks(acceptedTrack600);
+        handler.removeCallbacks(acceptedTrack1800);
+        handler.removeCallbacks(unknownLocationRetry);
+
+        clearPendingRejectConfirmation();
+        safetyGuard.clear();
+        decisionGuard.clear();
+        unknownLocationGuard.clear();
+        scheduledUnknownLocationKey = "";
+        latestEventText = "";
+        latestEventTextAt = 0L;
+        lastActionKey = "";
+        lastActionAt = 0L;
+
+        writeDecision("New calendar day detected. Temporary Accept/Reject decision state was reset; settings, history, and saved earnings were preserved.");
+        writeDiagnostic(Prefs.LAST_SCAN_STATUS,
+                timestamp() + " — DAY ROLLOVER: temporary action guards reset for the new local calendar day.");
     }
 
     private void evaluateCurrentOffer(AccessibilityNodeInfo eventSource, String scanSource) {

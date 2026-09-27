@@ -27,6 +27,7 @@ jobs:
             app/src/main/java/com/grimforsaken/sparkofferfilter/ActionSafetyGuard.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferDecisionGuard.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/UnknownLocationGuard.java \
+            app/src/main/java/com/grimforsaken/sparkofferfilter/DayRolloverGuard.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferCityDetector.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferLocationPolicy.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/DropoffPolicy.java \
@@ -51,7 +52,8 @@ jobs:
             app/src/test/java/com/grimforsaken/sparkofferfilter/AcceptedShoppingScreenDetectorTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/EarningsOfferCandidateTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/AcceptedOrderIdentityTest.java \
-            app/src/test/java/com/grimforsaken/sparkofferfilter/OrderAnalyticsTest.java
+            app/src/test/java/com/grimforsaken/sparkofferfilter/OrderAnalyticsTest.java \
+            app/src/test/java/com/grimforsaken/sparkofferfilter/DayRolloverGuardTest.java
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.OfferEvaluatorTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.SafetyAndLocationTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.EstimatedTotalScreenTest
@@ -66,6 +68,7 @@ jobs:
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.EarningsOfferCandidateTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.AcceptedOrderIdentityTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.OrderAnalyticsTest
+          java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.DayRolloverGuardTest
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4.0.4
