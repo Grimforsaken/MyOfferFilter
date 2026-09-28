@@ -25,16 +25,26 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MainActivity extends Activity {
+    private static final long UI_REFRESH_INTERVAL_MS = 3000L;
+    private static final long SERVICE_STATUS_REFRESH_INTERVAL_MS = 15000L;
+    private static final Pattern POST_ACCEPT_SECONDS_PATTERN =
+            Pattern.compile("([0-9]+(?:\\.[0-9]+)?) more seconds");
+
     private SharedPreferences prefs;
     private TextView serviceStatus;
     private TextView latestDecision;
     private TextView diagnostics;
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
+    private long lastServiceStatusCheckAt = 0L;
+    private boolean cachedAccessibilityEnabled = false;
+    private String lastServiceStatusText = "";
+    private String lastDecisionText = "";
+    private String lastDiagnosticsText = "";
 
     private final Runnable refreshRunnable = new Runnable() {
         @Override public void run() {
-            refreshStatus();
-            uiHandler.postDelayed(this, 750L);
+            refreshStatus(false);
+            uiHandler.postDelayed(this, UI_REFRESH_INTERVAL_MS);
         }
     };
 
@@ -361,7 +371,8 @@ public class MainActivity extends Activity {
             if (findViewById(R.id.appTitle) != null) applyLanguage();
         }
         uiHandler.removeCallbacks(refreshRunnable);
-        refreshRunnable.run();
+        refreshStatus(true);
+        uiHandler.postDelayed(refreshRunnable, UI_REFRESH_INTERVAL_MS);
     }
 
     @Override protected void onPause() {
@@ -369,10 +380,26 @@ public class MainActivity extends Activity {
         super.onPause();
     }
 
+    @Override protected void onDestroy() {
+        uiHandler.removeCallbacksAndMessages(null);
+        super.onDestroy();
+    }
+
     private void refreshStatus() {
+        refreshStatus(false);
+    }
+
+    private void refreshStatus(boolean forceServiceStatusCheck) {
         if (serviceStatus == null || prefs == null) return;
         boolean es = LanguageText.isSpanish(prefs);
-        boolean enabled = isAccessibilityServiceEnabled();
+        long now = System.currentTimeMillis();
+        if (forceServiceStatusCheck
+                || lastServiceStatusCheckAt == 0L
+                || now - lastServiceStatusCheckAt >= SERVICE_STATUS_REFRESH_INTERVAL_MS) {
+            cachedAccessibilityEnabled = isAccessibilityServiceEnabled();
+            lastServiceStatusCheckAt = now;
+        }
+        boolean enabled = cachedAccessibilityEnabled;
         boolean testMode = prefs.getBoolean(Prefs.DRY_RUN, true);
         String modeText = es
                 ? (testMode
@@ -382,20 +409,33 @@ public class MainActivity extends Activity {
                     ? "\nTEST MODE is ON — decisions are evaluated, but Accept/Reject is NOT pressed."
                     : "\nLIVE MODE is ON — matching offers may be accepted/rejected automatically.");
 
-        serviceStatus.setText((enabled
+        String serviceText = (enabled
                 ? (es ? "Estado del servicio de accesibilidad: ACTIVADO" : "Accessibility service status: ON")
                 : (es ? "Estado del servicio de accesibilidad: DESACTIVADO — abre los ajustes y activa Safe Driver"
-                      : "Accessibility service status: OFF — open settings and enable Safe Driver service")) + modeText);
+                      : "Accessibility service status: OFF — open settings and enable Safe Driver service")) + modeText;
+        if (!serviceText.equals(lastServiceStatusText)) {
+            serviceStatus.setText(serviceText);
+            lastServiceStatusText = serviceText;
+        }
 
         String decision = prefs.getString(Prefs.LAST_DECISION, es ? "Aún no se ha evaluado ninguna oferta." : "No offer evaluated yet.");
         String event = prefs.getString(Prefs.LAST_SPARK_EVENT, es ? "Aún no se ha recibido ningún evento de Spark." : "No Spark Accessibility event received yet.");
         String scan = prefs.getString(Prefs.LAST_SCAN_STATUS, es ? "Aún no se ha escaneado ninguna pantalla de Spark." : "No Spark screen scan yet.");
         String capture = prefs.getString(Prefs.LAST_CAPTURE, es ? "Aún no se ha capturado texto legible de Spark." : "No readable Spark text captured yet.");
 
-        latestDecision.setText(localizeSafetyDecision(decision, es));
-        diagnostics.setText(localizeSafetyStatus(event, es) + "\n\n"
+        String decisionText = localizeSafetyDecision(decision, es);
+        if (!decisionText.equals(lastDecisionText)) {
+            latestDecision.setText(decisionText);
+            lastDecisionText = decisionText;
+        }
+
+        String diagnosticsText = localizeSafetyStatus(event, es) + "\n\n"
                 + localizeSafetyStatus(scan, es) + "\n\n"
-                + (es ? "TEXTO DE SPARK:\n" : "VISIBLE SPARK TEXT:\n") + capture);
+                + (es ? "TEXTO DE SPARK:\n" : "VISIBLE SPARK TEXT:\n") + capture;
+        if (!diagnosticsText.equals(lastDiagnosticsText)) {
+            diagnostics.setText(diagnosticsText);
+            lastDiagnosticsText = diagnosticsText;
+        }
     }
 
     private String localizeSafetyDecision(String raw, boolean es) {
@@ -416,7 +456,7 @@ public class MainActivity extends Activity {
 
     private String localizeSafetyStatus(String raw, boolean es) {
         if (raw.contains("POST-ACCEPT SAFETY:")) {
-            Matcher m = Pattern.compile("([0-9]+(?:\\.[0-9]+)?) more seconds").matcher(raw);
+            Matcher m = POST_ACCEPT_SECONDS_PATTERN.matcher(raw);
             String remaining = m.find() ? m.group(1) : null;
             String base = es
                     ? "Pedido aceptado. Las acciones de rechazo están desactivadas durante 10 segundos."
