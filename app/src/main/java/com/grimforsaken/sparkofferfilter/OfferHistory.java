@@ -30,6 +30,14 @@ final class OfferHistory {
                 : value;
     }
 
+    static void clearAll(SharedPreferences prefs) {
+        if (prefs == null) return;
+        prefs.edit()
+                .remove(Prefs.HISTORY_REJECTED)
+                .remove(Prefs.HISTORY_ACCEPTED)
+                .apply();
+    }
+
     private static void append(SharedPreferences prefs, String key, String entry) {
         if (prefs == null || entry == null || entry.trim().isEmpty()) return;
         String old = prefs.getString(key, "");
