@@ -1,8 +1,10 @@
 package com.grimforsaken.sparkofferfilter;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.widget.Button;
 import android.widget.TabHost;
 import android.widget.TextView;
 
@@ -12,6 +14,7 @@ public class HistoryActivity extends Activity {
     private TextView acceptedHistory;
     private TextView historyTitle;
     private TextView historyDescription;
+    private Button clearHistoryButton;
     private TabHost tabHost;
 
     @Override
@@ -25,6 +28,7 @@ public class HistoryActivity extends Activity {
         acceptedHistory = findViewById(R.id.acceptedHistory);
         historyTitle = findViewById(R.id.historyTitle);
         historyDescription = findViewById(R.id.historyDescription);
+        clearHistoryButton = findViewById(R.id.clearHistoryButton);
         tabHost = findViewById(android.R.id.tabhost);
 
         if (tabHost == null || rejectedHistory == null || acceptedHistory == null) {
@@ -39,6 +43,9 @@ public class HistoryActivity extends Activity {
         tabHost.addTab(tabHost.newTabSpec("accepted")
                 .setIndicator("Accepted")
                 .setContent(R.id.acceptedTab));
+        if (clearHistoryButton != null) {
+            clearHistoryButton.setOnClickListener(v -> confirmClearHistory());
+        }
         applyLanguageText();
     }
 
@@ -55,6 +62,10 @@ public class HistoryActivity extends Activity {
                     : "Live automatic accepts are logged when Accept is pressed. Rejections are logged when Safe Driver selects Reject; Spark confirmation is tracked separately.");
         }
 
+        if (clearHistoryButton != null) {
+            clearHistoryButton.setText(es ? "Borrar historial" : "Clear History");
+        }
+
         if (tabHost.getTabWidget() != null && tabHost.getTabWidget().getTabCount() >= 2) {
             TextView rejectedLabel = tabHost.getTabWidget().getChildTabViewAt(0)
                     .findViewById(android.R.id.title);
@@ -63,6 +74,22 @@ public class HistoryActivity extends Activity {
             if (rejectedLabel != null) rejectedLabel.setText(es ? "Rechazados" : "Rejected");
             if (acceptedLabel != null) acceptedLabel.setText(es ? "Aceptados" : "Accepted");
         }
+    }
+
+    private void confirmClearHistory() {
+        boolean es = LanguageText.isSpanish(prefs);
+        new AlertDialog.Builder(this)
+                .setTitle(es ? "Borrar historial" : "Clear history")
+                .setMessage(es
+                        ? "¿Borrar permanentemente todo el historial de pedidos aceptados y rechazados? Esto no borrará los datos de Comparación de ganancias."
+                        : "Permanently clear all Accepted / Rejected Order History? This will not delete Order Earnings Comparison data.")
+                .setNegativeButton(es ? "Cancelar" : "Cancel", null)
+                .setPositiveButton(es ? "Borrar" : "Clear", (dialog, which) -> {
+                    OfferHistory.clearAll(prefs);
+                    rejectedHistory.setText(OfferHistory.rejected(prefs));
+                    acceptedHistory.setText(OfferHistory.accepted(prefs));
+                })
+                .show();
     }
 
     @Override
