@@ -104,6 +104,7 @@ public class MainActivity extends Activity {
         Button openAnalytics = findViewById(R.id.openAnalytics);
         Button openHistory = findViewById(R.id.openHistory);
         Button openAccessibility = findViewById(R.id.openAccessibility);
+        Button clearDiagnosticsButton = findViewById(R.id.clearDiagnosticsButton);
 
         masterEnabled.setChecked(prefs.getBoolean(Prefs.MASTER_ENABLED, false));
         dryRun.setChecked(prefs.getBoolean(Prefs.DRY_RUN, true));
@@ -205,6 +206,7 @@ public class MainActivity extends Activity {
         openAnalytics.setOnClickListener(v -> startActivity(new Intent(this, StatsActivity.class)));
         openHistory.setOnClickListener(v -> startActivity(new Intent(this, HistoryActivity.class)));
         openAccessibility.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+        clearDiagnosticsButton.setOnClickListener(v -> clearLiveDiagnostics());
         applyLanguage();
     }
 
@@ -291,6 +293,7 @@ public class MainActivity extends Activity {
         ((Button) findViewById(R.id.openAccessibility)).setText(es ? "Abrir ajustes de accesibilidad" : "Open Accessibility Settings");
         ((TextView) findViewById(R.id.latestHeading)).setText(es ? "ÚLTIMA DECISIÓN" : "LATEST DECISION");
         ((TextView) findViewById(R.id.diagnosticsHeading)).setText(es ? "DIAGNÓSTICO EN VIVO" : "LIVE DIAGNOSTICS");
+        ((Button) findViewById(R.id.clearDiagnosticsButton)).setText(es ? "Borrar diagnóstico en vivo" : "Clear Live Diagnostics");
         ((TextView) findViewById(R.id.safetyHelp)).setText(es
                 ? "Después de una aceptación exitosa, todas las acciones y confirmaciones de rechazo se desactivan durante 10 segundos."
                 : "After a successful acceptance, all reject actions and reject confirmations are disabled for 10 seconds.");
@@ -383,6 +386,19 @@ public class MainActivity extends Activity {
     @Override protected void onDestroy() {
         uiHandler.removeCallbacksAndMessages(null);
         super.onDestroy();
+    }
+
+    private void clearLiveDiagnostics() {
+        if (prefs == null) return;
+        prefs.edit()
+                .remove(Prefs.LAST_SPARK_EVENT)
+                .remove(Prefs.LAST_SCAN_STATUS)
+                .remove(Prefs.LAST_CAPTURE)
+                .remove(Prefs.LAST_EARNINGS_STATUS)
+                .apply();
+        lastDiagnosticsText = "";
+        if (diagnostics != null) diagnostics.setText("");
+        refreshStatus(false);
     }
 
     private void refreshStatus() {
