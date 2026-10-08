@@ -197,8 +197,8 @@ public class MainActivity extends Activity {
 
         ((TextView) findViewById(R.id.rejectHeading)).setText(es ? "REGLAS DE RECHAZO AUTOMÁTICO" : "AUTO-REJECT RULES");
         ((TextView) findViewById(R.id.rejectPriorityText)).setText(es
-                ? "Las reglas de monto mínimo, máximo de millas, dólares por milla, dólares por hora, duración máxima del viaje, 3 o más entregas y Compras siguen aplicándose incluso cuando Sand Springs o Sapulpa están permitidas. Si la ubicación es desconocida, Safe Driver espera 2 segundos y vuelve a comprobar; si sigue siendo desconocida, deja el pedido para revisión manual. Los pedidos ya aceptados permanecen protegidos por los bloqueos de seguridad."
-                : "Minimum-dollar, maximum-mile, dollars-per-mile, dollars-per-hour, maximum trip-time, 3+ drop-off, and Shopping reject rules still apply even when Sand Springs or Sapulpa is allowed. If the location is unknown, Safe Driver waits 2 seconds and checks again; if it is still unknown, the order is left for manual review. Already accepted offers remain protected by the safety locks.");
+                ? "Una tienda marcada como Aceptada solo pasa el filtro de ubicación; las reglas de monto mínimo, máximo de millas, dólares por milla, dólares por hora, duración máxima del viaje, 3 o más entregas y Compras todavía se aplican. Una tienda nueva aparece sin marcar y se rechaza hasta que la selecciones. Si no se puede identificar una tienda confiable, Safe Driver espera 2 segundos y luego deja la oferta para revisión manual."
+                : "A store checked as Accepted only passes the location filter; minimum-dollar, maximum-mile, dollars-per-mile, dollars-per-hour, maximum trip-time, 3+ drop-off, and Shopping reject rules still apply. A newly discovered store starts unchecked and is rejected until you select it. If no reliable store can be identified, Safe Driver waits 2 seconds and then leaves the offer for manual review.");
 
         ((Button) findViewById(R.id.openStoreLocations)).setText(es
                 ? "Ubicaciones de tiendas aceptadas"
