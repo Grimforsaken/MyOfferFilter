@@ -1,80 +1,80 @@
 package com.grimforsaken.sparkofferfilter;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public final class StrictWhitelistDetectionTest {
     public static void main(String[] args) {
-        shouldRejectUnlistedCityFromNormalAddressLine();
-        shouldRejectUnlistedCityFromFullStreetAddress();
-        shouldRejectUnlistedCityWhenStateIsOnNextLine();
-        shouldRejectExplicitLabeledCity();
-        shouldRejectUncheckedWalmartTulsaStoreLabel();
-        shouldAllowCheckedWalmartSandSpringsStoreLabel();
-        shouldAllowCheckedSandSpringsAcrossAddressFormats();
+        shouldRejectNewUncheckedWalmartStore();
+        shouldAllowSelectedWalmartStore();
+        shouldTreatDifferentStoreNumberAsDifferentLocation();
+        shouldReadWrappedWalmartStoreLabel();
+        shouldRejectUncheckedSamsClubStore();
+        shouldKeepAddressOnlyLocationUnknown();
         shouldKeepBareMapLabelUnknown();
         System.out.println("Strict whitelist detection tests passed.");
     }
 
-    private static void shouldRejectUnlistedCityFromNormalAddressLine() {
-        CityPolicy.configure(false, false, false, false, true, true);
-        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate(
-                "Bixby, OK 74008\n$30.00\n8 miles\nReject\nAccept");
-        require(d.identified && !d.allowed && "Bixby".equals(d.location),
-                "an identified city outside the checked whitelist must reject");
-    }
-
-    private static void shouldRejectUnlistedCityFromFullStreetAddress() {
-        CityPolicy.configure(false, false, false, false, true, true);
-        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate(
-                "Pickup\n123 Main Street, Broken Arrow, OK 74012\n$30.00\n8 miles");
-        require(d.identified && !d.allowed && "Broken Arrow".equals(d.location),
-                "a full street address for an unchecked city must reject");
-    }
-
-    private static void shouldRejectUnlistedCityWhenStateIsOnNextLine() {
-        CityPolicy.configure(false, false, false, false, true, true);
-        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate(
-                "Pickup location\nOwasso\nOK 74055\n$30.00\n8 miles");
-        require(d.identified && !d.allowed && "Owasso".equals(d.location),
-                "a split city/state address for an unchecked city must reject");
-    }
-
-    private static void shouldRejectExplicitLabeledCity() {
-        CityPolicy.configure(false, false, false, false, true, true);
-        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate(
-                "Store City: Claremore\n$30.00\n8 miles");
-        require(d.identified && !d.allowed && "Claremore".equals(d.location),
-                "an explicit reliable city label outside the whitelist must reject");
-    }
-
-    private static void shouldRejectUncheckedWalmartTulsaStoreLabel() {
-        CityPolicy.configure(false, false, false, false, true, true);
+    private static void shouldRejectNewUncheckedWalmartStore() {
+        StoreSelectionPolicy.configure(new HashSet<>(), new HashSet<>());
         OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate(
                 "$32.14\n3 stops • 3.9 miles • 54 mins\nShopping\nWalmart TULSA #5093\nREJECT\nACCEPT");
-        require(d.identified && !d.allowed && "Tulsa".equals(d.location),
-                "Walmart TULSA #store must be a reliable Tulsa location and reject while Tulsa is unchecked");
+        require(d.identified && !d.allowed && "WALMART#5093".equals(d.storeKey),
+                "a newly discovered Walmart store must reject until selected");
     }
 
-    private static void shouldAllowCheckedWalmartSandSpringsStoreLabel() {
-        CityPolicy.configure(false, false, false, false, true, true);
+    private static void shouldAllowSelectedWalmartStore() {
+        Set<String> accepted = new HashSet<>();
+        accepted.add("WALMART#838");
+        StoreSelectionPolicy.configure(accepted, new HashSet<>());
         OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate(
-                "$25.00\nShopping\nWalmart SAND SPRINGS #1234\nREJECT\nACCEPT");
-        require(d.identified && d.allowed && "Sand Springs".equals(d.location),
-                "Walmart SAND SPRINGS #store must pass the location whitelist by default");
+                "$25.00\nShopping\nWalmart SAND SPRINGS #838\nREJECT\nACCEPT");
+        require(d.identified && d.allowed && "Walmart Sand Springs #838".equals(d.location),
+                "selected Walmart store must pass the store whitelist");
     }
 
-    private static void shouldAllowCheckedSandSpringsAcrossAddressFormats() {
-        CityPolicy.configure(false, false, false, false, true, true);
+    private static void shouldTreatDifferentStoreNumberAsDifferentLocation() {
+        Set<String> accepted = new HashSet<>();
+        accepted.add("WALMART#838");
+        StoreSelectionPolicy.configure(accepted, new HashSet<>());
+        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate(
+                "$25.00\nShopping\nWalmart SAND SPRINGS #999\nREJECT\nACCEPT");
+        require(d.identified && !d.allowed,
+                "a different store number in the same city must remain unchecked");
+    }
+
+    private static void shouldReadWrappedWalmartStoreLabel() {
+        Set<String> accepted = new HashSet<>();
+        accepted.add("WALMART#838");
+        StoreSelectionPolicy.configure(accepted, new HashSet<>());
+        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate(
+                "Walmart SAND SPRINGS\n#838\nShopping\nREJECT\nACCEPT");
+        require(d.identified && d.allowed,
+                "store labels split across lines must match the same store key");
+    }
+
+    private static void shouldRejectUncheckedSamsClubStore() {
+        StoreSelectionPolicy.configure(new HashSet<>(), new HashSet<>());
+        OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate(
+                "Sam's Club TULSA #6342\nShopping\nREJECT\nACCEPT");
+        require(d.identified && !d.allowed && "SAMS_CLUB#6342".equals(d.storeKey),
+                "Sam's Club must be store-specific too");
+    }
+
+    private static void shouldKeepAddressOnlyLocationUnknown() {
+        StoreSelectionPolicy.configure(new HashSet<>(), new HashSet<>());
         OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate(
                 "Pickup\n250 S Highway 97, Sand Springs, OK 74063\n$30.00\n8 miles");
-        require(d.identified && d.allowed && "Sand Springs".equals(d.location),
-                "Sand Springs must remain allowed when checked by default");
+        require(!d.identified,
+                "address-only text must stay unknown because the new list is store-specific");
     }
 
     private static void shouldKeepBareMapLabelUnknown() {
-        CityPolicy.configure(false, false, false, false, true, true);
+        StoreSelectionPolicy.configure(new HashSet<>(), new HashSet<>());
         OfferLocationPolicy.Decision d = OfferLocationPolicy.evaluate(
                 "Tulsa\nBroken Arrow\nOwasso\nMap\n$30.00\n8 miles");
         require(!d.identified,
-                "bare map labels must remain unknown rather than causing a false location rejection");
+                "bare map labels must not create discovered stores");
     }
 
     private static void require(boolean condition, String message) {
