@@ -29,6 +29,8 @@ jobs:
             app/src/main/java/com/grimforsaken/sparkofferfilter/UnknownLocationGuard.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/DayRolloverGuard.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferCityDetector.java \
+            app/src/main/java/com/grimforsaken/sparkofferfilter/StoreLocationDetector.java \
+            app/src/main/java/com/grimforsaken/sparkofferfilter/StoreSelectionPolicy.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferLocationPolicy.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/DropoffPolicy.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/TripDurationPolicy.java \
@@ -46,6 +48,8 @@ jobs:
             app/src/test/java/com/grimforsaken/sparkofferfilter/WhitelistRejectPriorityTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/StrictWhitelistDetectionTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/ImmediateLocationRejectTest.java \
+            app/src/test/java/com/grimforsaken/sparkofferfilter/StoreLocationDetectorTest.java \
+            app/src/test/java/com/grimforsaken/sparkofferfilter/StoreSelectionPolicyTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/DropoffRejectTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/TripDurationRejectTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/HourlyRateRejectTest.java \
@@ -61,6 +65,8 @@ jobs:
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.WhitelistRejectPriorityTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.StrictWhitelistDetectionTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.ImmediateLocationRejectTest
+          java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.StoreLocationDetectorTest
+          java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.StoreSelectionPolicyTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.DropoffRejectTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.TripDurationRejectTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.HourlyRateRejectTest
