@@ -63,6 +63,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     @Override public void onServiceConnected() {
         super.onServiceConnected();
         prefs = getSharedPreferences(Prefs.NAME, MODE_PRIVATE);
+        StoreLocationRegistry.ensureFreshDynamicList(prefs);
+        StoreLocationRegistry.configurePolicy(prefs);
         dayRolloverGuard.initialize(System.currentTimeMillis());
         clearPendingRejectConfirmation();
         safetyGuard.clear();
@@ -81,6 +83,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         CharSequence packageName = event.getPackageName();
         if (packageName == null || !SPARK_PACKAGE.contentEquals(packageName)) return;
 
+        String eventPayload = collectEventPayload(event);
+        discoverStoreLocations(event.getSource(), eventPayload);
         handleCalendarDayRollover(System.currentTimeMillis());
         observeAcceptedOrderTracking(event.getSource());
         handler.removeCallbacks(acceptedTrack150);
@@ -92,7 +96,6 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
 
         if (!prefs.getBoolean(Prefs.MASTER_ENABLED, false)) return;
 
-        String eventPayload = collectEventPayload(event);
         if (looksLikeOfferPayload(eventPayload)) {
             latestEventText = eventPayload;
             latestEventTextAt = System.currentTimeMillis();
@@ -397,9 +400,9 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     bestStatus = timestamp() + " — Auto-Accept is waiting for a reliable location before it can act.";
                     continue;
                 }
-                if (!AutoAcceptCityPolicy.isAllowed(location.location)) {
+                if (!StoreSelectionPolicy.isAutoAcceptAllowed(location.storeKey)) {
                     writeDecision("LEFT FOR MANUAL REVIEW. " + location.location
-                            + " is not checked in Auto-Accept Locations. " + details);
+                            + " is not checked for Auto-Accept in Store Locations. " + details);
                     writeDiagnostic(Prefs.LAST_SCAN_STATUS,
                             timestamp() + " — Auto-Accept location gate blocked automatic acceptance; no reject action was taken.");
                     writeDiagnostic(Prefs.LAST_CAPTURE, truncate(currentText, 3500));
@@ -657,20 +660,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
     }
 
     private void refreshLocationPolicies() {
-        CityPolicy.configure(
-                prefs.getBoolean(Prefs.ALLOW_TULSA, false),
-                prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false),
-                prefs.getBoolean(Prefs.ALLOW_JENKS, false),
-                prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false),
-                prefs.getBoolean(Prefs.ALLOW_SAPULPA, true),
-                prefs.getBoolean(Prefs.ALLOW_SAND_SPRINGS, true));
-        AutoAcceptCityPolicy.configure(
-                prefs.getBoolean(Prefs.ACCEPT_LOCATION_TULSA, false),
-                prefs.getBoolean(Prefs.ACCEPT_LOCATION_GLENPOOL, false),
-                prefs.getBoolean(Prefs.ACCEPT_LOCATION_JENKS, false),
-                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAMS_CLUB, false),
-                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAPULPA, true),
-                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAND_SPRINGS, true));
+        StoreLocationRegistry.ensureFreshDynamicList(prefs);
+        StoreLocationRegistry.configurePolicy(prefs);
         DropoffPolicy.configure(prefs.getBoolean(Prefs.REJECT_3_PLUS_DROPOFFS, false));
         TripDurationPolicy.configure(
                 prefs.getBoolean(Prefs.REJECT_MAX_DURATION_ENABLED, false),
@@ -701,6 +692,15 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                 prefs.getFloat(Prefs.ACCEPT_MAX_MILES, 10.0f),
                 prefs.getBoolean(Prefs.ACCEPT_SHOPPING_ENABLED, false),
                 prefs.getBoolean(Prefs.ACCEPT_NO_SHOPPING_ENABLED, false));
+    }
+
+    private void discoverStoreLocations(AccessibilityNodeInfo eventSource, String eventPayload) {
+        if (prefs == null) return;
+        StoreLocationRegistry.discoverFromText(prefs, eventPayload);
+        List<AccessibilityNodeInfo> roots = collectSparkCandidateRoots(eventSource);
+        for (AccessibilityNodeInfo root : roots) {
+            StoreLocationRegistry.discoverFromText(prefs, collectAllText(root));
+        }
     }
 
     private List<AccessibilityNodeInfo> collectSparkCandidateRoots(AccessibilityNodeInfo eventSource) {
