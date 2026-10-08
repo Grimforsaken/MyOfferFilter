@@ -50,6 +50,11 @@ final class Prefs {
     static final String ACCEPT_LOCATION_SAPULPA = "accept_location_sapulpa";
     static final String ACCEPT_LOCATION_SAND_SPRINGS = "accept_location_sand_springs";
 
+    static final String STORE_LOCATION_LIST_VERSION = "store_location_list_version";
+    static final String DISCOVERED_STORE_RECORDS = "discovered_store_records";
+    static final String ACCEPTED_STORE_KEYS = "accepted_store_keys";
+    static final String AUTO_ACCEPT_STORE_KEYS = "auto_accept_store_keys";
+
     static final String LEGACY_ACCEPT_NO_SHIPPING_ENABLED = "accept_no_shipping_enabled";
     static final String ACCEPT_NO_SHIPPING_ENABLED = ACCEPT_NO_SHOPPING_ENABLED;
 
