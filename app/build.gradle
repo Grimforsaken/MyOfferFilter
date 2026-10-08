@@ -23,8 +23,8 @@ android {
         applicationId 'com.grimforsaken.sparkofferfilter'
         minSdk 29
         targetSdk 36
-        versionCode 34
-        versionName '1.17.7'
+        versionCode 35
+        versionName '1.17.8'
     }
 
     sourceSets {
