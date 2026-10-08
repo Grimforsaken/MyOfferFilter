@@ -431,7 +431,10 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                     clearUnknownLocationState();
                     playDecisionChime(true);
                     String city = OfferCityDetector.detect(treeText);
-                    if ("Unknown".equals(city) && !"Sam's Club".equals(location.location)) city = location.location;
+                    if ("Unknown".equals(city)) {
+                        StoreLocationDetector.Store detectedStore = StoreLocationDetector.firstStore(treeText);
+                        if (detectedStore != null && !detectedStore.city.isEmpty()) city = detectedStore.city;
+                    }
                     String cityLabel = LanguageText.isSpanish(prefs) ? "Ciudad: " : "City: ";
                     String summary = cityLabel + city + "\n" + formatOffer(result) + " Reason: " + result.reason;
                     OfferHistory.addAccepted(prefs, timestamp() + "\n" + summary
