@@ -73,20 +73,7 @@ public class MainActivity extends Activity {
         CheckBox rejectMinHourlyEnabled = findViewById(R.id.rejectMinHourlyEnabled);
         EditText rejectMinHourly = findViewById(R.id.rejectMinHourly);
 
-        CheckBox allowSandSprings = findViewById(R.id.allowSandSprings);
-        CheckBox allowSapulpa = findViewById(R.id.allowSapulpa);
-        CheckBox allowTulsa = findViewById(R.id.allowTulsa);
-        CheckBox allowGlenpool = findViewById(R.id.allowGlenpool);
-        CheckBox allowJenks = findViewById(R.id.allowJenks);
-        CheckBox allowSamsClub = findViewById(R.id.allowSamsClub);
-
         CheckBox autoAcceptEnabled = findViewById(R.id.autoAcceptEnabled);
-        CheckBox acceptAllowSandSprings = findViewById(R.id.acceptAllowSandSprings);
-        CheckBox acceptAllowSapulpa = findViewById(R.id.acceptAllowSapulpa);
-        CheckBox acceptAllowTulsa = findViewById(R.id.acceptAllowTulsa);
-        CheckBox acceptAllowGlenpool = findViewById(R.id.acceptAllowGlenpool);
-        CheckBox acceptAllowJenks = findViewById(R.id.acceptAllowJenks);
-        CheckBox acceptAllowSamsClub = findViewById(R.id.acceptAllowSamsClub);
         CheckBox acceptMinPayEnabled = findViewById(R.id.acceptMinPayEnabled);
         EditText acceptMinPay = findViewById(R.id.acceptMinPay);
         CheckBox acceptMinRateEnabled = findViewById(R.id.acceptMinRateEnabled);
@@ -101,6 +88,7 @@ public class MainActivity extends Activity {
         serviceStatus = findViewById(R.id.serviceStatus);
         latestDecision = findViewById(R.id.latestDecision);
         diagnostics = findViewById(R.id.diagnostics);
+        Button openStoreLocations = findViewById(R.id.openStoreLocations);
         Button openAnalytics = findViewById(R.id.openAnalytics);
         Button openHistory = findViewById(R.id.openHistory);
         Button openAccessibility = findViewById(R.id.openAccessibility);
@@ -123,20 +111,7 @@ public class MainActivity extends Activity {
         rejectMinHourlyEnabled.setChecked(prefs.getBoolean(Prefs.REJECT_MIN_HOURLY_ENABLED, false));
         rejectMinHourly.setText(format(prefs.getFloat(Prefs.REJECT_MIN_HOURLY, 20.00f), 2));
 
-        allowSandSprings.setChecked(prefs.getBoolean(Prefs.ALLOW_SAND_SPRINGS, true));
-        allowSapulpa.setChecked(prefs.getBoolean(Prefs.ALLOW_SAPULPA, true));
-        allowTulsa.setChecked(prefs.getBoolean(Prefs.ALLOW_TULSA, false));
-        allowGlenpool.setChecked(prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false));
-        allowJenks.setChecked(prefs.getBoolean(Prefs.ALLOW_JENKS, false));
-        allowSamsClub.setChecked(prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false));
-
         autoAcceptEnabled.setChecked(prefs.getBoolean(Prefs.AUTO_ACCEPT_ENABLED, false));
-        acceptAllowSandSprings.setChecked(prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAND_SPRINGS, true));
-        acceptAllowSapulpa.setChecked(prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAPULPA, true));
-        acceptAllowTulsa.setChecked(prefs.getBoolean(Prefs.ACCEPT_LOCATION_TULSA, false));
-        acceptAllowGlenpool.setChecked(prefs.getBoolean(Prefs.ACCEPT_LOCATION_GLENPOOL, false));
-        acceptAllowJenks.setChecked(prefs.getBoolean(Prefs.ACCEPT_LOCATION_JENKS, false));
-        acceptAllowSamsClub.setChecked(prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAMS_CLUB, false));
         acceptMinPayEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_MIN_PAY_ENABLED, false));
         acceptMinPay.setText(format(prefs.getFloat(Prefs.ACCEPT_MIN_PAY, 20.00f), 2));
         acceptMinRateEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_MIN_RATE_ENABLED, false));
@@ -167,20 +142,7 @@ public class MainActivity extends Activity {
         bindCheck(rejectMinHourlyEnabled, Prefs.REJECT_MIN_HOURLY_ENABLED);
         bindNumber(rejectMinHourly, Prefs.REJECT_MIN_HOURLY, 0.01f, 1000.0f);
 
-        bindCheck(allowSandSprings, Prefs.ALLOW_SAND_SPRINGS);
-        bindCheck(allowSapulpa, Prefs.ALLOW_SAPULPA);
-        bindCheck(allowTulsa, Prefs.ALLOW_TULSA);
-        bindCheck(allowGlenpool, Prefs.ALLOW_GLENPOOL);
-        bindCheck(allowJenks, Prefs.ALLOW_JENKS);
-        bindCheck(allowSamsClub, Prefs.ALLOW_SAMS_CLUB);
-
         bindCheck(autoAcceptEnabled, Prefs.AUTO_ACCEPT_ENABLED);
-        bindCheck(acceptAllowSandSprings, Prefs.ACCEPT_LOCATION_SAND_SPRINGS);
-        bindCheck(acceptAllowSapulpa, Prefs.ACCEPT_LOCATION_SAPULPA);
-        bindCheck(acceptAllowTulsa, Prefs.ACCEPT_LOCATION_TULSA);
-        bindCheck(acceptAllowGlenpool, Prefs.ACCEPT_LOCATION_GLENPOOL);
-        bindCheck(acceptAllowJenks, Prefs.ACCEPT_LOCATION_JENKS);
-        bindCheck(acceptAllowSamsClub, Prefs.ACCEPT_LOCATION_SAMS_CLUB);
         bindCheck(acceptMinPayEnabled, Prefs.ACCEPT_MIN_PAY_ENABLED);
         bindNumber(acceptMinPay, Prefs.ACCEPT_MIN_PAY, 0.01f, 10000.0f);
         bindCheck(acceptMinRateEnabled, Prefs.ACCEPT_MIN_RATE_ENABLED);
@@ -203,6 +165,7 @@ public class MainActivity extends Activity {
             refreshStatus();
         });
 
+        openStoreLocations.setOnClickListener(v -> startActivity(new Intent(this, StoreLocationsActivity.class)));
         openAnalytics.setOnClickListener(v -> startActivity(new Intent(this, StatsActivity.class)));
         openHistory.setOnClickListener(v -> startActivity(new Intent(this, HistoryActivity.class)));
         openAccessibility.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
@@ -237,16 +200,12 @@ public class MainActivity extends Activity {
                 ? "Las reglas de monto mínimo, máximo de millas, dólares por milla, dólares por hora, duración máxima del viaje, 3 o más entregas y Compras siguen aplicándose incluso cuando Sand Springs o Sapulpa están permitidas. Si la ubicación es desconocida, Safe Driver espera 2 segundos y vuelve a comprobar; si sigue siendo desconocida, deja el pedido para revisión manual. Los pedidos ya aceptados permanecen protegidos por los bloqueos de seguridad."
                 : "Minimum-dollar, maximum-mile, dollars-per-mile, dollars-per-hour, maximum trip-time, 3+ drop-off, and Shopping reject rules still apply even when Sand Springs or Sapulpa is allowed. If the location is unknown, Safe Driver waits 2 seconds and checks again; if it is still unknown, the order is left for manual review. Already accepted offers remain protected by the safety locks.");
 
-        ((TextView) findViewById(R.id.locationHeading)).setText(es ? "UBICACIONES ACEPTADAS" : "ACCEPTED LOCATIONS");
-        ((TextView) findViewById(R.id.locationHelp)).setText(es
-                ? "Esta lista solo controla el filtro de ubicación. Una ubicación marcada NO omite las reglas de monto mínimo, máximo de millas, dólares por milla, dólares por hora, tiempo máximo de viaje, 3 o más entregas ni Compras. Sand Springs y Sapulpa están marcadas de forma predeterminada."
-                : "This list only controls the location filter. A checked location does NOT bypass minimum-dollar, maximum-mile, dollars-per-mile, dollars-per-hour, maximum trip-time, 3+ drop-off, or Shopping reject rules. Sand Springs and Sapulpa are checked by default.");
-        ((CheckBox) findViewById(R.id.allowSandSprings)).setText(es ? "Aceptar pedidos de Sand Springs" : "Accept Sand Springs offers");
-        ((CheckBox) findViewById(R.id.allowSapulpa)).setText(es ? "Aceptar pedidos de Sapulpa" : "Accept Sapulpa offers");
-        ((CheckBox) findViewById(R.id.allowTulsa)).setText(es ? "Aceptar pedidos de Tulsa" : "Accept Tulsa offers");
-        ((CheckBox) findViewById(R.id.allowGlenpool)).setText(es ? "Aceptar pedidos de Glenpool" : "Accept Glenpool offers");
-        ((CheckBox) findViewById(R.id.allowJenks)).setText(es ? "Aceptar pedidos de Jenks" : "Accept Jenks offers");
-        ((CheckBox) findViewById(R.id.allowSamsClub)).setText(es ? "Aceptar pedidos de Sam’s Club" : "Accept Sam’s Club offers");
+        ((Button) findViewById(R.id.openStoreLocations)).setText(es
+                ? "Ubicaciones de tiendas aceptadas"
+                : "Accepted Store Locations");
+        ((TextView) findViewById(R.id.storeLocationMenuHelp)).setText(es
+                ? "La lista ahora empieza vacía. Safe Driver agrega automáticamente nuevas tiendas a medida que las lee en Spark. Abre este menú para elegir qué tiendas están Aceptadas y cuáles pueden usar Auto-Aceptar."
+                : "The list now starts empty. Safe Driver automatically adds new stores as it reads them in Spark. Open this menu to choose which stores are Accepted and which may use Auto-Accept.");
 
         ((CheckBox) findViewById(R.id.rejectNoShopping)).setText(es ? "Rechazar pedidos que no muestran Compras" : "Reject orders that do not show Shopping");
         ((CheckBox) findViewById(R.id.rejectMinPayEnabled)).setText(es ? "Rechazar pedidos por debajo de este monto mínimo" : "Reject orders below this minimum order dollar amount");
@@ -264,16 +223,9 @@ public class MainActivity extends Activity {
 
         ((TextView) findViewById(R.id.acceptHeading)).setText(es ? "REGLAS DE ACEPTACIÓN AUTOMÁTICA" : "AUTO-ACCEPT RULES");
         ((CheckBox) findViewById(R.id.autoAcceptEnabled)).setText(es ? "Activar aceptación automática" : "Enable Auto-Accept");
-        ((TextView) findViewById(R.id.acceptLocationHeading)).setText(es ? "UBICACIONES DE ACEPTACIÓN AUTOMÁTICA" : "AUTO-ACCEPT LOCATIONS");
-        ((TextView) findViewById(R.id.acceptLocationHelp)).setText(es
-                ? "Esta es una lista separada. Safe Driver solo puede pulsar Aceptar automáticamente cuando la ubicación está marcada aquí Y se cumplen todas las demás reglas de aceptación automática. Sand Springs y Sapulpa están marcadas de forma predeterminada."
-                : "This is a separate checklist. Safe Driver can only press Accept automatically when the location is checked here AND every other enabled Auto-Accept rule passes. Sand Springs and Sapulpa are checked by default.");
-        ((CheckBox) findViewById(R.id.acceptAllowSandSprings)).setText(es ? "Aceptar automáticamente Sand Springs" : "Auto-Accept Sand Springs");
-        ((CheckBox) findViewById(R.id.acceptAllowSapulpa)).setText(es ? "Aceptar automáticamente Sapulpa" : "Auto-Accept Sapulpa");
-        ((CheckBox) findViewById(R.id.acceptAllowTulsa)).setText(es ? "Aceptar automáticamente Tulsa" : "Auto-Accept Tulsa");
-        ((CheckBox) findViewById(R.id.acceptAllowGlenpool)).setText(es ? "Aceptar automáticamente Glenpool" : "Auto-Accept Glenpool");
-        ((CheckBox) findViewById(R.id.acceptAllowJenks)).setText(es ? "Aceptar automáticamente Jenks" : "Auto-Accept Jenks");
-        ((CheckBox) findViewById(R.id.acceptAllowSamsClub)).setText(es ? "Aceptar automáticamente Sam’s Club" : "Auto-Accept Sam’s Club");
+        ((TextView) findViewById(R.id.acceptStoreMenuHelp)).setText(es
+                ? "Las tiendas permitidas para Auto-Aceptar se administran en el menú Ubicaciones de tiendas aceptadas."
+                : "Store permissions for Auto-Accept are managed in the Accepted Store Locations menu.");
         ((TextView) findViewById(R.id.acceptHelp)).setText(es
                 ? "Cada criterio activado debe cumplirse. Para Compras: una sola casilla limita el tipo de pedido, ambas permiten cualquiera y ninguna ignora el estado de Compras."
                 : "Every enabled Auto-Accept criterion must pass. Shopping choices work together: one checked limits the order type, both checked allow either type, neither checked ignores Shopping status.");
@@ -310,20 +262,8 @@ public class MainActivity extends Activity {
     }
 
     private void refreshLocationPolicies() {
-        CityPolicy.configure(
-                prefs.getBoolean(Prefs.ALLOW_TULSA, false),
-                prefs.getBoolean(Prefs.ALLOW_GLENPOOL, false),
-                prefs.getBoolean(Prefs.ALLOW_JENKS, false),
-                prefs.getBoolean(Prefs.ALLOW_SAMS_CLUB, false),
-                prefs.getBoolean(Prefs.ALLOW_SAPULPA, true),
-                prefs.getBoolean(Prefs.ALLOW_SAND_SPRINGS, true));
-        AutoAcceptCityPolicy.configure(
-                prefs.getBoolean(Prefs.ACCEPT_LOCATION_TULSA, false),
-                prefs.getBoolean(Prefs.ACCEPT_LOCATION_GLENPOOL, false),
-                prefs.getBoolean(Prefs.ACCEPT_LOCATION_JENKS, false),
-                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAMS_CLUB, false),
-                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAPULPA, true),
-                prefs.getBoolean(Prefs.ACCEPT_LOCATION_SAND_SPRINGS, true));
+        StoreLocationRegistry.ensureFreshDynamicList(prefs);
+        StoreLocationRegistry.configurePolicy(prefs);
         DropoffPolicy.configure(prefs.getBoolean(Prefs.REJECT_3_PLUS_DROPOFFS, false));
         TripDurationPolicy.configure(
                 prefs.getBoolean(Prefs.REJECT_MAX_DURATION_ENABLED, false),
