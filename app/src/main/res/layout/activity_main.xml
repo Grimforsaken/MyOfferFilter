@@ -47,14 +47,20 @@
         <TextView android:id="@+id/rejectHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="AUTO-REJECT RULES" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
         <TextView android:id="@+id/rejectPriorityText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Minimum-dollar, maximum-mile, dollars-per-mile, 3+ drop-off, and Shopping reject rules still apply even when Sand Springs or Sapulpa is allowed. Unknown locations are rechecked after 2 seconds, then left for manual review if still unknown. Already accepted offers stay protected by the safety locks." android:textSize="16sp" />
 
-        <TextView android:id="@+id/locationHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="ACCEPTED LOCATIONS" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
-        <TextView android:id="@+id/locationHelp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="This list only controls the location filter. A checked location does NOT bypass minimum-dollar, maximum-mile, dollars-per-mile, 3+ drop-off, or Shopping reject rules. Sand Springs and Sapulpa are checked by default." android:textSize="14sp" android:textColor="@color/warning" />
-        <CheckBox android:id="@+id/allowSandSprings" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept Sand Springs offers" android:checked="true" />
-        <CheckBox android:id="@+id/allowSapulpa" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept Sapulpa offers" android:checked="true" />
-        <CheckBox android:id="@+id/allowTulsa" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept Tulsa offers" />
-        <CheckBox android:id="@+id/allowGlenpool" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept Glenpool offers" />
-        <CheckBox android:id="@+id/allowJenks" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept Jenks offers" />
-        <CheckBox android:id="@+id/allowSamsClub" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept Sam's Club offers" />
+        <Button
+            android:id="@+id/openStoreLocations"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Accepted Store Locations" />
+        <TextView
+            android:id="@+id/storeLocationMenuHelp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="The list starts empty. Safe Driver adds new stores automatically as it reads them in Spark. Open the menu to choose Accepted and Auto-Accept stores."
+            android:textSize="14sp"
+            android:textColor="@color/warning" />
 
         <CheckBox android:id="@+id/rejectNoShopping" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Reject orders that do not show Shopping" />
         <CheckBox android:id="@+id/rejectMinPayEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders below this minimum order dollar amount" android:checked="true" />
@@ -89,14 +95,14 @@
         <TextView android:id="@+id/acceptHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="AUTO-ACCEPT RULES" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
         <CheckBox android:id="@+id/autoAcceptEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Enable Auto-Accept" android:textStyle="bold" />
 
-        <TextView android:id="@+id/acceptLocationHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="AUTO-ACCEPT LOCATIONS" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
-        <TextView android:id="@+id/acceptLocationHelp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="This is a separate checklist. Safe Driver can only press Accept automatically when the location is checked here AND every other enabled Auto-Accept rule passes. Sand Springs and Sapulpa are checked by default." android:textSize="14sp" android:textColor="@color/warning" />
-        <CheckBox android:id="@+id/acceptAllowSandSprings" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Auto-Accept Sand Springs" android:checked="true" />
-        <CheckBox android:id="@+id/acceptAllowSapulpa" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Auto-Accept Sapulpa" android:checked="true" />
-        <CheckBox android:id="@+id/acceptAllowTulsa" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Auto-Accept Tulsa" />
-        <CheckBox android:id="@+id/acceptAllowGlenpool" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Auto-Accept Glenpool" />
-        <CheckBox android:id="@+id/acceptAllowJenks" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Auto-Accept Jenks" />
-        <CheckBox android:id="@+id/acceptAllowSamsClub" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Auto-Accept Sam's Club" />
+        <TextView
+            android:id="@+id/acceptStoreMenuHelp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Store permissions for Auto-Accept are managed in the Accepted Store Locations menu."
+            android:textSize="14sp"
+            android:textColor="@color/warning" />
 
         <TextView android:id="@+id/acceptHelp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Every enabled Auto-Accept criterion must pass. Shopping choices work together: one checked limits the order type, both checked allow either type, neither checked ignores Shopping status." android:textSize="14sp" android:textColor="@color/warning" />
         <CheckBox android:id="@+id/acceptShoppingEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Accept Shopping orders" />
