@@ -1,12 +1,15 @@
 package com.grimforsaken.sparkofferfilter;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public final class UnknownAndAutoAcceptLocationTest {
     public static void main(String[] args) {
         shouldWaitTwoSecondsBeforeManualReview();
         shouldKeepTimedOutOfferManualAfterLateLocation();
         shouldNotLockDifferentOfferToManualReview();
-        shouldUseSeparateAutoAcceptWhitelist();
-        System.out.println("Unknown-location and Auto-Accept location tests passed.");
+        shouldUseSeparateAutoAcceptStoreWhitelist();
+        System.out.println("Unknown-location and Auto-Accept store tests passed.");
     }
 
     private static void shouldWaitTwoSecondsBeforeManualReview() {
@@ -39,18 +42,20 @@ public final class UnknownAndAutoAcceptLocationTest {
                 "manual-review lock must not carry to a different offer");
     }
 
-    private static void shouldUseSeparateAutoAcceptWhitelist() {
-        AutoAcceptCityPolicy.configure(false, false, false, false, true, true);
-        require(AutoAcceptCityPolicy.isAllowed("Sand Springs"),
-                "Sand Springs should be enabled by default in Auto-Accept locations");
-        require(AutoAcceptCityPolicy.isAllowed("Sapulpa"),
-                "Sapulpa should be enabled by default in Auto-Accept locations");
-        require(!AutoAcceptCityPolicy.isAllowed("Tulsa"),
-                "Tulsa must not auto-accept unless its separate Auto-Accept checkbox is checked");
+    private static void shouldUseSeparateAutoAcceptStoreWhitelist() {
+        Set<String> accepted = new HashSet<>();
+        accepted.add("WALMART#838");
+        accepted.add("WALMART#1234");
+        Set<String> auto = new HashSet<>();
+        auto.add("WALMART#838");
+        StoreSelectionPolicy.configure(accepted, auto);
 
-        AutoAcceptCityPolicy.configure(true, false, false, false, true, true);
-        require(AutoAcceptCityPolicy.isAllowed("Tulsa"),
-                "checking Tulsa in Auto-Accept locations must allow Tulsa auto-acceptance");
+        require(StoreSelectionPolicy.isAccepted("WALMART#1234"),
+                "a store may be accepted without being auto-accepted");
+        require(!StoreSelectionPolicy.isAutoAcceptAllowed("WALMART#1234"),
+                "accepted-only store must not auto-accept");
+        require(StoreSelectionPolicy.isAutoAcceptAllowed("WALMART#838"),
+                "separately checked Auto-Accept store must allow automatic acceptance");
     }
 
     private static void require(boolean condition, String message) {
