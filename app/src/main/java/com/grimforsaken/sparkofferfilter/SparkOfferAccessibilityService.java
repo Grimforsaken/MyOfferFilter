@@ -74,7 +74,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
         refreshLocationPolicies();
         try { toneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 85); }
         catch (RuntimeException ignored) { toneGenerator = null; }
-        writeDecision("Service connected. Unchecked Accepted Locations use immediate rejection; other reject rules keep safety verification. Unknown locations get one 2-second recheck before manual review when no reject rule already applies.");
+        writeDecision("Service connected. Newly discovered stores start unchecked. Unchecked Accepted Store Locations use immediate rejection; other reject rules keep safety verification. Unknown stores get one 2-second recheck before manual review when no reject rule already applies.");
         writeDiagnostic(Prefs.LAST_SCAN_STATUS, "Instant Scan ready; waiting for a Spark event or preloaded offer tree.");
     }
 
@@ -270,8 +270,8 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
 
                 // A configured reject rule is allowed to reject before the city finishes
                 // loading. The whitelist only grants a location permission to continue;
-                // it never exempts Sand Springs, Sapulpa, or any other checked location
-                // from minimum-pay, maximum-mileage, dollars-per-mile, or Shopping rules.
+                // it never exempts a checked store from minimum-pay, maximum-mileage,
+                // dollars-per-mile, dollars-per-hour, trip-time, drop-off, or Shopping rules.
                 if (!baseRejectBeforeLocation) {
                     if (unknownLocationGuard.shouldLeaveForManualReview(baseOfferKey, now)) {
                         unknownTimedOut = true;
@@ -309,7 +309,7 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
                             ? result.pay / result.miles : null;
                     result = OfferEvaluator.Result.ready(true, false, false, result.hasShopping,
                             result.pay, result.miles, rate,
-                            location.location + " is not checked in Accepted Locations");
+                            location.location + " is not checked in Accepted Store Locations");
                 }
             }
 
