@@ -45,7 +45,7 @@
         <CheckBox android:id="@+id/decisionChimes" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Play separate Accept / Reject chimes" android:checked="true" />
 
         <TextView android:id="@+id/rejectHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="AUTO-REJECT RULES" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
-        <TextView android:id="@+id/rejectPriorityText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Minimum-dollar, maximum-mile, dollars-per-mile, 3+ drop-off, and Shopping reject rules still apply even when Sand Springs or Sapulpa is allowed. Unknown locations are rechecked after 2 seconds, then left for manual review if still unknown. Already accepted offers stay protected by the safety locks." android:textSize="16sp" />
+        <TextView android:id="@+id/rejectPriorityText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="A checked store only passes the location filter. New stores start unchecked and are rejected until selected. Unknown stores are rechecked after 2 seconds, then left for manual review if still unknown." android:textSize="16sp" />
 
         <Button
             android:id="@+id/openStoreLocations"
