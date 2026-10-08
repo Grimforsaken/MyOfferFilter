@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/surface">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/storeLocationsTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="STORE LOCATIONS"
+            android:textStyle="bold"
+            android:textSize="24sp"
+            android:textColor="@color/brand_blue_dark" />
+
+        <TextView
+            android:id="@+id/storeLocationsHelp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Stores are added automatically as Safe Driver reads them in Spark."
+            android:textSize="14sp"
+            android:textColor="@color/warning" />
+
+        <TextView
+            android:id="@+id/storeLocationsEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="No stores have been discovered yet."
+            android:textSize="16sp" />
+
+        <LinearLayout
+            android:id="@+id/storeLocationsList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical" />
+
+    </LinearLayout>
+</ScrollView>
