@@ -60,7 +60,9 @@ final class OfferDecisionGuard {
     }
 
     static boolean isImmediateLocationRejectReason(String reason) {
-        return reason != null && reason.contains("is not checked in Accepted Locations");
+        return reason != null
+                && (reason.contains("is not checked in Accepted Locations")
+                    || reason.contains("is not checked in Accepted Store Locations"));
     }
 
     long rejectStabilityRemainingMs(long now) {
