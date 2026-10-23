@@ -5,7 +5,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.graphics.Typeface;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
+import android.widget.Switch;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -71,11 +71,11 @@ public class StoreLocationsActivity extends Activity {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT));
 
-            CheckBox accepted = new CheckBox(this);
+            Switch accepted = new Switch(this);
             accepted.setText(es ? "Aceptada" : "Accepted");
             accepted.setChecked(entry.accepted);
 
-            CheckBox autoAccept = new CheckBox(this);
+            Switch autoAccept = new Switch(this);
             autoAccept.setText(es ? "Auto-Aceptar" : "Auto-Accept");
             autoAccept.setChecked(entry.autoAccept);
 
@@ -101,7 +101,7 @@ public class StoreLocationsActivity extends Activity {
         }
     }
 
-    private void onAutoChanged(StoreLocationRegistry.StoreEntry entry, CheckBox accepted,
+    private void onAutoChanged(StoreLocationRegistry.StoreEntry entry, Switch accepted,
                                android.widget.CompoundButton source, boolean isChecked) {
         StoreLocationRegistry.setAutoAccept(prefs, entry.key, isChecked);
         if (isChecked && !accepted.isChecked()) {

@@ -41,6 +41,7 @@ jobs:
             app/src/main/java/com/grimforsaken/sparkofferfilter/AcceptedOrderIdentity.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OrderAnalytics.java \
             app/src/main/java/com/grimforsaken/sparkofferfilter/OfferEvaluator.java \
+            app/src/main/java/com/grimforsaken/sparkofferfilter/RestaurantPolicy.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/OfferEvaluatorTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/SafetyAndLocationTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/EstimatedTotalScreenTest.java \
@@ -57,7 +58,8 @@ jobs:
             app/src/test/java/com/grimforsaken/sparkofferfilter/EarningsOfferCandidateTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/AcceptedOrderIdentityTest.java \
             app/src/test/java/com/grimforsaken/sparkofferfilter/OrderAnalyticsTest.java \
-            app/src/test/java/com/grimforsaken/sparkofferfilter/DayRolloverGuardTest.java
+            app/src/test/java/com/grimforsaken/sparkofferfilter/DayRolloverGuardTest.java \
+            app/src/test/java/com/grimforsaken/sparkofferfilter/RestaurantPolicyTest.java
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.OfferEvaluatorTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.SafetyAndLocationTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.EstimatedTotalScreenTest
@@ -75,6 +77,7 @@ jobs:
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.AcceptedOrderIdentityTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.OrderAnalyticsTest
           java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.DayRolloverGuardTest
+          java -cp /tmp/myofferfilter-tests com.grimforsaken.sparkofferfilter.RestaurantPolicyTest
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4.0.4

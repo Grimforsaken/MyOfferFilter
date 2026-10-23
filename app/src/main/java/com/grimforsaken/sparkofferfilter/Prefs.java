@@ -10,6 +10,7 @@ final class Prefs {
     static final String INSTALLER_URI = "installer_uri";
     static final String APP_LANGUAGE = "app_language";
 
+    static final String REJECT_RESTAURANT = "reject_restaurant";
     static final String REJECT_NO_SHOPPING = "reject_no_shopping";
     static final String REJECT_LOW_RATE = "reject_low_rate";
     static final String THRESHOLD = "threshold";
@@ -32,6 +33,7 @@ final class Prefs {
     static final String ALLOW_SAND_SPRINGS = "allow_sand_springs";
 
     static final String AUTO_ACCEPT_ENABLED = "auto_accept_enabled";
+    static final String ACCEPT_RESTAURANT = "accept_restaurant";
     static final String ACCEPT_MIN_PAY_ENABLED = "accept_min_pay_enabled";
     static final String ACCEPT_MIN_PAY = "accept_min_pay";
     static final String ACCEPT_MIN_RATE_ENABLED = "accept_min_rate_enabled";

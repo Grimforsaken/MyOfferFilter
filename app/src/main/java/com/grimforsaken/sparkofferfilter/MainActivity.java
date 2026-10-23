@@ -15,7 +15,7 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
-import android.widget.CheckBox;
+import android.widget.Switch;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -56,34 +56,36 @@ public class MainActivity extends Activity {
         migrateNoShoppingPreference();
         setContentView(R.layout.activity_main);
 
-        CheckBox masterEnabled = findViewById(R.id.masterEnabled);
-        CheckBox dryRun = findViewById(R.id.dryRun);
-        CheckBox decisionChimes = findViewById(R.id.decisionChimes);
-        CheckBox rejectNoShopping = findViewById(R.id.rejectNoShopping);
-        CheckBox rejectMinPayEnabled = findViewById(R.id.rejectMinPayEnabled);
+        Switch masterEnabled = findViewById(R.id.masterEnabled);
+        Switch dryRun = findViewById(R.id.dryRun);
+        Switch decisionChimes = findViewById(R.id.decisionChimes);
+        Switch rejectRestaurant = findViewById(R.id.rejectRestaurant);
+        Switch rejectNoShopping = findViewById(R.id.rejectNoShopping);
+        Switch rejectMinPayEnabled = findViewById(R.id.rejectMinPayEnabled);
         EditText rejectMinPay = findViewById(R.id.rejectMinPay);
-        CheckBox rejectLowRate = findViewById(R.id.rejectLowRate);
+        Switch rejectLowRate = findViewById(R.id.rejectLowRate);
         EditText rejectThreshold = findViewById(R.id.rejectThreshold);
-        CheckBox rejectMaxMilesEnabled = findViewById(R.id.rejectMaxMilesEnabled);
+        Switch rejectMaxMilesEnabled = findViewById(R.id.rejectMaxMilesEnabled);
         EditText rejectMaxMiles = findViewById(R.id.rejectMaxMiles);
-        CheckBox rejectThreePlusDropoffs = findViewById(R.id.rejectThreePlusDropoffs);
-        CheckBox rejectMaxDurationEnabled = findViewById(R.id.rejectMaxDurationEnabled);
+        Switch rejectThreePlusDropoffs = findViewById(R.id.rejectThreePlusDropoffs);
+        Switch rejectMaxDurationEnabled = findViewById(R.id.rejectMaxDurationEnabled);
         EditText rejectMaxDurationHours = findViewById(R.id.rejectMaxDurationHours);
         EditText rejectMaxDurationMinutes = findViewById(R.id.rejectMaxDurationMinutes);
-        CheckBox rejectMinHourlyEnabled = findViewById(R.id.rejectMinHourlyEnabled);
+        Switch rejectMinHourlyEnabled = findViewById(R.id.rejectMinHourlyEnabled);
         EditText rejectMinHourly = findViewById(R.id.rejectMinHourly);
 
-        CheckBox autoAcceptEnabled = findViewById(R.id.autoAcceptEnabled);
-        CheckBox acceptMinPayEnabled = findViewById(R.id.acceptMinPayEnabled);
+        Switch autoAcceptEnabled = findViewById(R.id.autoAcceptEnabled);
+        Switch acceptRestaurant = findViewById(R.id.acceptRestaurant);
+        Switch acceptMinPayEnabled = findViewById(R.id.acceptMinPayEnabled);
         EditText acceptMinPay = findViewById(R.id.acceptMinPay);
-        CheckBox acceptMinRateEnabled = findViewById(R.id.acceptMinRateEnabled);
+        Switch acceptMinRateEnabled = findViewById(R.id.acceptMinRateEnabled);
         EditText acceptMinRate = findViewById(R.id.acceptMinRate);
-        CheckBox acceptMinHourlyEnabled = findViewById(R.id.acceptMinHourlyEnabled);
+        Switch acceptMinHourlyEnabled = findViewById(R.id.acceptMinHourlyEnabled);
         EditText acceptMinHourly = findViewById(R.id.acceptMinHourly);
-        CheckBox acceptMaxMilesEnabled = findViewById(R.id.acceptMaxMilesEnabled);
+        Switch acceptMaxMilesEnabled = findViewById(R.id.acceptMaxMilesEnabled);
         EditText acceptMaxMiles = findViewById(R.id.acceptMaxMiles);
-        CheckBox acceptShoppingEnabled = findViewById(R.id.acceptShoppingEnabled);
-        CheckBox acceptNoShoppingEnabled = findViewById(R.id.acceptNoShoppingEnabled);
+        Switch acceptShoppingEnabled = findViewById(R.id.acceptShoppingEnabled);
+        Switch acceptNoShoppingEnabled = findViewById(R.id.acceptNoShoppingEnabled);
 
         serviceStatus = findViewById(R.id.serviceStatus);
         latestDecision = findViewById(R.id.latestDecision);
@@ -97,6 +99,8 @@ public class MainActivity extends Activity {
         masterEnabled.setChecked(prefs.getBoolean(Prefs.MASTER_ENABLED, false));
         dryRun.setChecked(prefs.getBoolean(Prefs.DRY_RUN, true));
         decisionChimes.setChecked(prefs.getBoolean(Prefs.DECISION_CHIMES, true));
+        boolean rejectRestaurantSaved = prefs.getBoolean(Prefs.REJECT_RESTAURANT, false);
+        rejectRestaurant.setChecked(rejectRestaurantSaved);
         rejectNoShopping.setChecked(prefs.getBoolean(Prefs.REJECT_NO_SHOPPING, false));
         rejectMinPayEnabled.setChecked(prefs.getBoolean(Prefs.REJECT_MIN_PAY_ENABLED, true));
         rejectMinPay.setText(format(prefs.getFloat(Prefs.REJECT_MIN_PAY, 15.00f), 2));
@@ -112,6 +116,7 @@ public class MainActivity extends Activity {
         rejectMinHourly.setText(format(prefs.getFloat(Prefs.REJECT_MIN_HOURLY, 20.00f), 2));
 
         autoAcceptEnabled.setChecked(prefs.getBoolean(Prefs.AUTO_ACCEPT_ENABLED, false));
+        acceptRestaurant.setChecked(!rejectRestaurantSaved && prefs.getBoolean(Prefs.ACCEPT_RESTAURANT, false));
         acceptMinPayEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_MIN_PAY_ENABLED, false));
         acceptMinPay.setText(format(prefs.getFloat(Prefs.ACCEPT_MIN_PAY, 20.00f), 2));
         acceptMinRateEnabled.setChecked(prefs.getBoolean(Prefs.ACCEPT_MIN_RATE_ENABLED, false));
@@ -128,6 +133,10 @@ public class MainActivity extends Activity {
         bindCheck(masterEnabled, Prefs.MASTER_ENABLED);
         bindCheck(dryRun, Prefs.DRY_RUN);
         bindCheck(decisionChimes, Prefs.DECISION_CHIMES);
+        rejectRestaurant.setOnCheckedChangeListener((button, checked) -> {
+            prefs.edit().putBoolean(Prefs.REJECT_RESTAURANT, checked).apply();
+            if (checked && acceptRestaurant.isChecked()) acceptRestaurant.setChecked(false);
+        });
         bindCheck(rejectNoShopping, Prefs.REJECT_NO_SHOPPING);
         bindCheck(rejectMinPayEnabled, Prefs.REJECT_MIN_PAY_ENABLED);
         bindNumber(rejectMinPay, Prefs.REJECT_MIN_PAY, 0.01f, 10000.0f);
@@ -143,6 +152,10 @@ public class MainActivity extends Activity {
         bindNumber(rejectMinHourly, Prefs.REJECT_MIN_HOURLY, 0.01f, 1000.0f);
 
         bindCheck(autoAcceptEnabled, Prefs.AUTO_ACCEPT_ENABLED);
+        acceptRestaurant.setOnCheckedChangeListener((button, checked) -> {
+            prefs.edit().putBoolean(Prefs.ACCEPT_RESTAURANT, checked).apply();
+            if (checked && rejectRestaurant.isChecked()) rejectRestaurant.setChecked(false);
+        });
         bindCheck(acceptMinPayEnabled, Prefs.ACCEPT_MIN_PAY_ENABLED);
         bindNumber(acceptMinPay, Prefs.ACCEPT_MIN_PAY, 0.01f, 10000.0f);
         bindCheck(acceptMinRateEnabled, Prefs.ACCEPT_MIN_RATE_ENABLED);
@@ -191,9 +204,9 @@ public class MainActivity extends Activity {
                 ? "Compañero personal no oficial para Spark Driver. Usa el Modo de prueba mientras estés estacionado hasta que Diagnóstico en vivo muestre correctamente la información de la oferta."
                 : "Unofficial personal Spark Driver companion. Use Test mode while parked until Live Diagnostics shows the offer information correctly.");
 
-        ((CheckBox) findViewById(R.id.masterEnabled)).setText(es ? "Activar filtrado automático de ofertas" : "Enable automatic offer filtering");
-        ((CheckBox) findViewById(R.id.dryRun)).setText(es ? "Modo de prueba — registrar decisiones sin pulsar Aceptar ni Rechazar" : "Test mode — log decisions but do not click Accept or Reject");
-        ((CheckBox) findViewById(R.id.decisionChimes)).setText(es ? "Reproducir sonidos separados para Aceptar / Rechazar" : "Play separate Accept / Reject chimes");
+        ((Switch) findViewById(R.id.masterEnabled)).setText(es ? "Activar filtrado automático de ofertas" : "Enable automatic offer filtering");
+        ((Switch) findViewById(R.id.dryRun)).setText(es ? "Modo de prueba — registrar decisiones sin pulsar Aceptar ni Rechazar" : "Test mode — log decisions but do not click Accept or Reject");
+        ((Switch) findViewById(R.id.decisionChimes)).setText(es ? "Reproducir sonidos separados para Aceptar / Rechazar" : "Play separate Accept / Reject chimes");
 
         ((TextView) findViewById(R.id.rejectHeading)).setText(es ? "REGLAS DE RECHAZO AUTOMÁTICO" : "AUTO-REJECT RULES");
         ((TextView) findViewById(R.id.rejectPriorityText)).setText(es
@@ -207,37 +220,39 @@ public class MainActivity extends Activity {
                 ? "La lista ahora empieza vacía. Safe Driver agrega automáticamente nuevas tiendas a medida que las lee en Spark. Abre este menú para elegir qué tiendas están Aceptadas y cuáles pueden usar Auto-Aceptar."
                 : "The list now starts empty. Safe Driver automatically adds new stores as it reads them in Spark. Open this menu to choose which stores are Accepted and which may use Auto-Accept.");
 
-        ((CheckBox) findViewById(R.id.rejectNoShopping)).setText(es ? "Rechazar pedidos que no muestran Compras" : "Reject orders that do not show Shopping");
-        ((CheckBox) findViewById(R.id.rejectMinPayEnabled)).setText(es ? "Rechazar pedidos por debajo de este monto mínimo" : "Reject orders below this minimum order dollar amount");
+        ((Switch) findViewById(R.id.rejectRestaurant)).setText(es ? "Rechazar automáticamente pedidos con etiqueta Restaurante" : "Auto-Reject Restaurant-tagged orders");
+        ((Switch) findViewById(R.id.rejectNoShopping)).setText(es ? "Rechazar pedidos que no muestran Compras" : "Reject orders that do not show Shopping");
+        ((Switch) findViewById(R.id.rejectMinPayEnabled)).setText(es ? "Rechazar pedidos por debajo de este monto mínimo" : "Reject orders below this minimum order dollar amount");
         ((TextView) findViewById(R.id.rejectMinPayLabel)).setText(es ? "Rechazar por debajo de $:  " : "Reject orders below $:  ");
-        ((CheckBox) findViewById(R.id.rejectLowRate)).setText(es ? "Rechazar pedidos por debajo de este monto de dólares por milla" : "Reject orders below this dollars-per-mile amount");
+        ((Switch) findViewById(R.id.rejectLowRate)).setText(es ? "Rechazar pedidos por debajo de este monto de dólares por milla" : "Reject orders below this dollars-per-mile amount");
         ((TextView) findViewById(R.id.rejectRateLabel)).setText(es ? "Rechazar por debajo de $ / milla:  " : "Reject below $ / mile:  ");
-        ((CheckBox) findViewById(R.id.rejectMaxMilesEnabled)).setText(es ? "Rechazar pedidos que superen este máximo de millas" : "Reject orders over this maximum number of miles");
+        ((Switch) findViewById(R.id.rejectMaxMilesEnabled)).setText(es ? "Rechazar pedidos que superen este máximo de millas" : "Reject orders over this maximum number of miles");
         ((TextView) findViewById(R.id.rejectMaxMilesLabel)).setText(es ? "Rechazar por encima de millas:  " : "Reject over miles:  ");
-        ((CheckBox) findViewById(R.id.rejectThreePlusDropoffs)).setText(es ? "Rechazar pedidos con 3 o más entregas" : "Reject orders with 3 or more drop-offs");
-        ((CheckBox) findViewById(R.id.rejectMaxDurationEnabled)).setText(es ? "Rechazar pedidos que superen este tiempo estimado de viaje" : "Reject orders over this estimated trip time");
+        ((Switch) findViewById(R.id.rejectThreePlusDropoffs)).setText(es ? "Rechazar pedidos con 3 o más entregas" : "Reject orders with 3 or more drop-offs");
+        ((Switch) findViewById(R.id.rejectMaxDurationEnabled)).setText(es ? "Rechazar pedidos que superen este tiempo estimado de viaje" : "Reject orders over this estimated trip time");
         ((TextView) findViewById(R.id.rejectMaxDurationHoursLabel)).setText(es ? "Horas:  " : "Hours:  ");
         ((TextView) findViewById(R.id.rejectMaxDurationMinutesLabel)).setText(es ? "Minutos:  " : "Minutes:  ");
-        ((CheckBox) findViewById(R.id.rejectMinHourlyEnabled)).setText(es ? "Rechazar pedidos por debajo de este monto de dólares por hora" : "Reject orders below this dollars-per-hour amount");
+        ((Switch) findViewById(R.id.rejectMinHourlyEnabled)).setText(es ? "Rechazar pedidos por debajo de este monto de dólares por hora" : "Reject orders below this dollars-per-hour amount");
         ((TextView) findViewById(R.id.rejectMinHourlyLabel)).setText(es ? "Rechazar por debajo de $ / hora:  " : "Reject below $ / hour:  ");
 
         ((TextView) findViewById(R.id.acceptHeading)).setText(es ? "REGLAS DE ACEPTACIÓN AUTOMÁTICA" : "AUTO-ACCEPT RULES");
-        ((CheckBox) findViewById(R.id.autoAcceptEnabled)).setText(es ? "Activar aceptación automática" : "Enable Auto-Accept");
+        ((Switch) findViewById(R.id.autoAcceptEnabled)).setText(es ? "Activar aceptación automática" : "Enable Auto-Accept");
+        ((Switch) findViewById(R.id.acceptRestaurant)).setText(es ? "Aceptar automáticamente pedidos con etiqueta Restaurante" : "Auto-Accept Restaurant-tagged orders");
         ((TextView) findViewById(R.id.acceptStoreMenuHelp)).setText(es
                 ? "Las tiendas permitidas para Auto-Aceptar se administran en el menú Ubicaciones de tiendas aceptadas."
                 : "Store permissions for Auto-Accept are managed in the Accepted Store Locations menu.");
         ((TextView) findViewById(R.id.acceptHelp)).setText(es
-                ? "Cada criterio activado debe cumplirse. Para Compras: una sola casilla limita el tipo de pedido, ambas permiten cualquiera y ninguna ignora el estado de Compras."
-                : "Every enabled Auto-Accept criterion must pass. Shopping choices work together: one checked limits the order type, both checked allow either type, neither checked ignores Shopping status.");
-        ((CheckBox) findViewById(R.id.acceptShoppingEnabled)).setText(es ? "Aceptar pedidos de compras" : "Accept Shopping orders");
-        ((CheckBox) findViewById(R.id.acceptNoShoppingEnabled)).setText(es ? "Aceptar pedidos que no incluyen compras" : "Accept orders that do not include Shopping");
-        ((CheckBox) findViewById(R.id.acceptMinPayEnabled)).setText(es ? "Requerir un monto mínimo del pedido" : "Require a minimum order dollar amount");
+                ? "Cada criterio activado debe cumplirse. Para Compras: un interruptor activado limita el tipo de pedido, ambos activados permiten cualquiera y ambos desactivados ignoran el estado de Compras."
+                : "Every enabled Auto-Accept criterion must pass. Shopping choices work together: one switch ON limits the order type, both ON allow either type, both OFF ignore Shopping status.");
+        ((Switch) findViewById(R.id.acceptShoppingEnabled)).setText(es ? "Aceptar pedidos de compras" : "Accept Shopping orders");
+        ((Switch) findViewById(R.id.acceptNoShoppingEnabled)).setText(es ? "Aceptar pedidos que no incluyen compras" : "Accept orders that do not include Shopping");
+        ((Switch) findViewById(R.id.acceptMinPayEnabled)).setText(es ? "Requerir un monto mínimo del pedido" : "Require a minimum order dollar amount");
         ((TextView) findViewById(R.id.acceptMinPayLabel)).setText(es ? "Monto mínimo $:  " : "Minimum order $:  ");
-        ((CheckBox) findViewById(R.id.acceptMinRateEnabled)).setText(es ? "Requerir un mínimo de dólares por milla" : "Require a minimum dollars-per-mile amount");
+        ((Switch) findViewById(R.id.acceptMinRateEnabled)).setText(es ? "Requerir un mínimo de dólares por milla" : "Require a minimum dollars-per-mile amount");
         ((TextView) findViewById(R.id.acceptMinRateLabel)).setText(es ? "Mínimo $ / milla:  " : "Minimum $ / mile:  ");
-        ((CheckBox) findViewById(R.id.acceptMinHourlyEnabled)).setText(es ? "Requerir un mínimo de dólares por hora" : "Require a minimum dollars-per-hour amount");
+        ((Switch) findViewById(R.id.acceptMinHourlyEnabled)).setText(es ? "Requerir un mínimo de dólares por hora" : "Require a minimum dollars-per-hour amount");
         ((TextView) findViewById(R.id.acceptMinHourlyLabel)).setText(es ? "Mínimo $ / hora:  " : "Minimum $ / hour:  ");
-        ((CheckBox) findViewById(R.id.acceptMaxMilesEnabled)).setText(es ? "Requerir un máximo de millas" : "Require a maximum number of miles");
+        ((Switch) findViewById(R.id.acceptMaxMilesEnabled)).setText(es ? "Requerir un máximo de millas" : "Require a maximum number of miles");
         ((Button) findViewById(R.id.openAnalytics)).setText(es ? "Comparación de ganancias por orden" : "Order Earnings Comparison");
         ((TextView) findViewById(R.id.acceptMaxMilesLabel)).setText(es ? "Máximo de millas:  " : "Maximum miles:  ");
 
@@ -254,7 +269,7 @@ public class MainActivity extends Activity {
                 : "If an offer is visible but no decision occurs, return here and read Live Diagnostics.");
     }
 
-    private void bindCheck(CheckBox checkBox, String key) {
+    private void bindCheck(Switch checkBox, String key) {
         checkBox.setOnCheckedChangeListener((button, checked) -> {
             prefs.edit().putBoolean(key, checked).apply();
             refreshLocationPolicies();

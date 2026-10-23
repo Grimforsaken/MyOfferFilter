@@ -40,9 +40,9 @@
         <TextView android:id="@+id/appTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="Safe Driver" android:textSize="26sp" android:textStyle="bold" android:textColor="@color/text_primary" />
         <TextView android:id="@+id/appSubtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="Unofficial personal Spark Driver companion. Use Test mode while parked until Live Diagnostics shows the offer information correctly." android:textSize="14sp" />
 
-        <CheckBox android:id="@+id/masterEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="Enable automatic offer filtering" android:textStyle="bold" />
-        <CheckBox android:id="@+id/dryRun" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Test mode — log decisions but do not click Accept or Reject" android:checked="true" />
-        <CheckBox android:id="@+id/decisionChimes" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Play separate Accept / Reject chimes" android:checked="true" />
+        <Switch android:id="@+id/masterEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="Enable automatic offer filtering" android:textStyle="bold" />
+        <Switch android:id="@+id/dryRun" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Test mode — log decisions but do not click Accept or Reject" android:checked="true" />
+        <Switch android:id="@+id/decisionChimes" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Play separate Accept / Reject chimes" android:checked="true" />
 
         <TextView android:id="@+id/rejectHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="AUTO-REJECT RULES" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
         <TextView android:id="@+id/rejectPriorityText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="A checked store only passes the location filter. New stores start unchecked and are rejected until selected. Unknown stores are rechecked after 2 seconds, then left for manual review if still unknown." android:textSize="16sp" />
@@ -62,38 +62,41 @@
             android:textSize="14sp"
             android:textColor="@color/warning" />
 
-        <CheckBox android:id="@+id/rejectNoShopping" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Reject orders that do not show Shopping" />
-        <CheckBox android:id="@+id/rejectMinPayEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders below this minimum order dollar amount" android:checked="true" />
+        <Switch android:id="@+id/rejectRestaurant" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Auto-Reject Restaurant-tagged orders" />
+        <Switch android:id="@+id/rejectNoShopping" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Reject orders that do not show Shopping" />
+        <Switch android:id="@+id/rejectMinPayEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders below this minimum order dollar amount" android:checked="true" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:id="@+id/rejectMinPayLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Reject orders below $:  " />
             <EditText android:id="@+id/rejectMinPay" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="15.00" android:selectAllOnFocus="true" />
         </LinearLayout>
-        <CheckBox android:id="@+id/rejectLowRate" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders below this dollars-per-mile amount" android:checked="true" />
+        <Switch android:id="@+id/rejectLowRate" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders below this dollars-per-mile amount" android:checked="true" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:id="@+id/rejectRateLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Reject below $ / mile:  " />
             <EditText android:id="@+id/rejectThreshold" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="1.25" android:selectAllOnFocus="true" />
         </LinearLayout>
-        <CheckBox android:id="@+id/rejectMaxMilesEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders over this maximum number of miles" />
+        <Switch android:id="@+id/rejectMaxMilesEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders over this maximum number of miles" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:id="@+id/rejectMaxMilesLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Reject over miles:  " />
             <EditText android:id="@+id/rejectMaxMiles" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="20.0" android:selectAllOnFocus="true" />
         </LinearLayout>
-        <CheckBox android:id="@+id/rejectThreePlusDropoffs" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders with 3 or more drop-offs" />
-        <CheckBox android:id="@+id/rejectMaxDurationEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders over this estimated trip time" />
+        <Switch android:id="@+id/rejectThreePlusDropoffs" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders with 3 or more drop-offs" />
+        <Switch android:id="@+id/rejectMaxDurationEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders over this estimated trip time" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:id="@+id/rejectMaxDurationHoursLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hours:  " />
             <EditText android:id="@+id/rejectMaxDurationHours" android:layout_width="70dp" android:layout_height="wrap_content" android:inputType="number" android:singleLine="true" android:text="1" android:maxLength="2" android:selectAllOnFocus="true" />
             <TextView android:id="@+id/rejectMaxDurationMinutesLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="Minutes:  " />
             <EditText android:id="@+id/rejectMaxDurationMinutes" android:layout_width="70dp" android:layout_height="wrap_content" android:inputType="number" android:singleLine="true" android:text="0" android:maxLength="2" android:selectAllOnFocus="true" />
         </LinearLayout>
-        <CheckBox android:id="@+id/rejectMinHourlyEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders below this dollars-per-hour amount" />
+        <Switch android:id="@+id/rejectMinHourlyEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reject orders below this dollars-per-hour amount" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:id="@+id/rejectMinHourlyLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Reject below $ / hour:  " />
             <EditText android:id="@+id/rejectMinHourly" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="20.00" android:selectAllOnFocus="true" />
         </LinearLayout>
 
         <TextView android:id="@+id/acceptHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="AUTO-ACCEPT RULES" android:textStyle="bold" android:textColor="@color/brand_blue_dark" />
-        <CheckBox android:id="@+id/autoAcceptEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Enable Auto-Accept" android:textStyle="bold" />
+        <Switch android:id="@+id/autoAcceptEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Enable Auto-Accept" android:textStyle="bold" />
+        <Switch android:id="@+id/acceptRestaurant" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Auto-Accept Restaurant-tagged orders" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Restaurant Auto-Accept requires Enable Auto-Accept and an allowed Auto-Accept store. Restaurant switches override standard pay and mileage thresholds but not offer safety checks." android:textSize="13sp" android:textColor="@color/warning" />
 
         <TextView
             android:id="@+id/acceptStoreMenuHelp"
@@ -104,25 +107,25 @@
             android:textSize="14sp"
             android:textColor="@color/warning" />
 
-        <TextView android:id="@+id/acceptHelp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Every enabled Auto-Accept criterion must pass. Shopping choices work together: one checked limits the order type, both checked allow either type, neither checked ignores Shopping status." android:textSize="14sp" android:textColor="@color/warning" />
-        <CheckBox android:id="@+id/acceptShoppingEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Accept Shopping orders" />
-        <CheckBox android:id="@+id/acceptNoShoppingEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept orders that do not include Shopping" />
-        <CheckBox android:id="@+id/acceptMinPayEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Require a minimum order dollar amount" />
+        <TextView android:id="@+id/acceptHelp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Every enabled Auto-Accept criterion must pass. Shopping choices work together: one switch ON limits the order type, both ON allow either type, both OFF ignore Shopping status." android:textSize="14sp" android:textColor="@color/warning" />
+        <Switch android:id="@+id/acceptShoppingEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Accept Shopping orders" />
+        <Switch android:id="@+id/acceptNoShoppingEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accept orders that do not include Shopping" />
+        <Switch android:id="@+id/acceptMinPayEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Require a minimum order dollar amount" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:id="@+id/acceptMinPayLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Minimum order $:  " />
             <EditText android:id="@+id/acceptMinPay" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="20.00" android:selectAllOnFocus="true" />
         </LinearLayout>
-        <CheckBox android:id="@+id/acceptMinRateEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Require a minimum dollars-per-mile amount" />
+        <Switch android:id="@+id/acceptMinRateEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Require a minimum dollars-per-mile amount" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:id="@+id/acceptMinRateLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Minimum $ / mile:  " />
             <EditText android:id="@+id/acceptMinRate" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="1.25" android:selectAllOnFocus="true" />
         </LinearLayout>
-        <CheckBox android:id="@+id/acceptMinHourlyEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Require a minimum dollars-per-hour amount" />
+        <Switch android:id="@+id/acceptMinHourlyEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Require a minimum dollars-per-hour amount" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:id="@+id/acceptMinHourlyLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Minimum $ / hour:  " />
             <EditText android:id="@+id/acceptMinHourly" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="20.00" android:selectAllOnFocus="true" />
         </LinearLayout>
-        <CheckBox android:id="@+id/acceptMaxMilesEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Require a maximum number of miles" />
+        <Switch android:id="@+id/acceptMaxMilesEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Require a maximum number of miles" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:id="@+id/acceptMaxMilesLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Maximum miles:  " />
             <EditText android:id="@+id/acceptMaxMiles" android:layout_width="100dp" android:layout_height="wrap_content" android:inputType="numberDecimal" android:singleLine="true" android:text="10.0" android:selectAllOnFocus="true" />

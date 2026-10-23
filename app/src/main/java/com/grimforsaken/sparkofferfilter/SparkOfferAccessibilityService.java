@@ -252,6 +252,20 @@ public class SparkOfferAccessibilityService extends AccessibilityService {
 
             String baseOfferKey = unknownLocationOfferKey(currentText);
             OfferEvaluator.Result result = evaluateRules(currentText);
+            RestaurantPolicy.Action restaurantAction = RestaurantPolicy.action(treeText,
+                    prefs.getBoolean(Prefs.REJECT_RESTAURANT, false),
+                    prefs.getBoolean(Prefs.ACCEPT_RESTAURANT, false),
+                    prefs.getBoolean(Prefs.AUTO_ACCEPT_ENABLED, false));
+            // Require a complete offer identity before a Restaurant-tag decision.
+            // Existing location, one-decision, post-accept, and confirmation safety gates still run.
+            if (restaurantAction != RestaurantPolicy.Action.NONE
+                    && result.pay != null && result.miles != null && result.miles > 0.0) {
+                boolean rejectRestaurant = restaurantAction == RestaurantPolicy.Action.REJECT;
+                result = OfferEvaluator.Result.ready(rejectRestaurant, !rejectRestaurant,
+                        result.hasAllowedCity, result.hasShopping, result.pay, result.miles,
+                        result.pay / result.miles,
+                        rejectRestaurant ? "Restaurant tag: Auto-Reject" : "Restaurant tag: Auto-Accept");
+            }
             boolean estimatedTotalScreen = OfferEvaluator.normalize(currentText).contains("ESTIMATED TOTAL");
             boolean baseRejectBeforeLocation = result.ready && result.shouldReject && !estimatedTotalScreen;
             OfferLocationPolicy.Decision location = OfferLocationPolicy.evaluate(treeText);
